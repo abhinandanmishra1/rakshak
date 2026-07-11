@@ -150,10 +150,10 @@ async function handleClientMessage(ws, rawMessage, session) {
         if (!session.geminiWs || session.geminiWs.readyState !== WebSocket.OPEN) return;
         session.geminiWs.send(JSON.stringify({
           realtimeInput: {
-            mediaChunks: [{
+            audio: {
               mimeType: 'audio/pcm;rate=16000',
               data: message.data
-            }]
+            }
           }
         }));
         break;
