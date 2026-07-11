@@ -32,10 +32,13 @@ interface SessionState {
   conversationHistory: any[];
   lastRiskScore: number;
   language: string;
+  voice: string;
 }
 
 export default function App() {
   // --- UI and Session State ---
+  const defaultLang = localStorage.getItem('rakshak_language') || 'hi-IN';
+  const defaultVoice = localStorage.getItem('rakshak_voice') || 'Aoede';
   const [session, setSession] = useState<SessionState>({
     connected: false,
     watching: false,
@@ -43,7 +46,8 @@ export default function App() {
     currentScenario: config.DEMO_SCREENS[0].id,
     conversationHistory: [],
     lastRiskScore: 0,
-    language: 'hi-IN'
+    language: defaultLang,
+    voice: defaultVoice
   });
 
   const [currentScreen, setCurrentScreen] = useState<UPIScreen>(config.DEMO_SCREENS[0]);
@@ -62,9 +66,18 @@ export default function App() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   
+  // Audio state
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const nextStartTimeRef = useRef<number>(0);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const [isMicActive, setIsMicActive] = useState(false);
+  
   // Tracking for debounce and capture
   const isWarningActiveRef = useRef<boolean>(false);
   const lastSentFrameRef = useRef<string>('');
+  const lastSentTextContextRef = useRef<string>('');
 
   // --- Screen Capture State ---
   const [isScreenCapturing, setIsScreenCapturing] = useState(false);
@@ -111,6 +124,7 @@ export default function App() {
       socket.onopen = () => {
         addTerminalLog('SYSTEM', 'WebSocket Connection Established.');
         setSession(s => ({ ...s, connected: true, watching: true }));
+        socket.send(JSON.stringify({ type: 'setup_live_api', lang: session.language, voice: session.voice }));
         transmitScreenFrame(currentScreen, socket);
       };
 
@@ -139,10 +153,50 @@ export default function App() {
     if (socketRef.current) {
       socketRef.current.close();
     }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    stopMic();
   }, []);
 
-  // --- Audio Engine (TTS) ---
+  // --- Audio Engine (Web Audio API & PCM) ---
+  const playAudioChunk = (base64: string) => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+    }
+    try {
+      const binaryString = window.atob(base64);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+      }
+      const int16Array = new Int16Array(bytes.buffer);
+      const float32Array = new Float32Array(int16Array.length);
+      for (let i = 0; i < int16Array.length; i++) {
+        float32Array[i] = int16Array[i] / 32768.0;
+      }
+      const audioBuffer = audioContextRef.current.createBuffer(1, float32Array.length, 16000);
+      audioBuffer.getChannelData(0).set(float32Array);
+      
+      const source = audioContextRef.current.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioContextRef.current.destination);
+
+      const currentTime = audioContextRef.current.currentTime;
+      if (nextStartTimeRef.current < currentTime) {
+          nextStartTimeRef.current = currentTime;
+      }
+      source.start(nextStartTimeRef.current);
+      nextStartTimeRef.current += audioBuffer.duration;
+    } catch(err) {
+      addTerminalLog('ERROR', 'Audio playback failed');
+    }
+  };
+
   const playVoiceWarning = (text: string) => {
+    // Left as fallback, but Live API streams audio chunks directly.
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
 
@@ -155,6 +209,69 @@ export default function App() {
     if (voice) utterance.voice = voice;
 
     window.speechSynthesis.speak(utterance);
+  };
+
+  const startMic = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamRef.current = stream;
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+      }
+
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
+      processorRef.current = processor;
+
+      processor.onaudioprocess = (e) => {
+        const inputData = e.inputBuffer.getChannelData(0);
+        const pcm16 = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+          let s = Math.max(-1, Math.min(1, inputData[i]));
+          pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+        
+        const uint8 = new Uint8Array(pcm16.buffer);
+        let binary = '';
+        for (let i = 0; i < uint8.length; i++) {
+          binary += String.fromCharCode(uint8[i]);
+        }
+        const base64 = window.btoa(binary);
+
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+          socketRef.current.send(JSON.stringify({ type: 'audio_chunk', data: base64 }));
+        }
+      };
+
+      const gainNode = audioContextRef.current.createGain();
+      gainNode.gain.value = 0; // mute local playback
+      gainNodeRef.current = gainNode;
+      
+      source.connect(processor);
+      processor.connect(gainNode);
+      gainNode.connect(audioContextRef.current.destination);
+      setIsMicActive(true);
+      addTerminalLog('SYSTEM', 'Microphone capture started. Speak to Rakshak.');
+    } catch (err) {
+      addTerminalLog('ERROR', 'Failed to start mic: ' + (err as Error).message);
+    }
+  };
+
+  const stopMic = () => {
+    if (micStreamRef.current) {
+      micStreamRef.current.getTracks().forEach(t => t.stop());
+      micStreamRef.current = null;
+    }
+    if (processorRef.current) {
+      processorRef.current.disconnect();
+      processorRef.current = null;
+    }
+    if (gainNodeRef.current) {
+      gainNodeRef.current.disconnect();
+      gainNodeRef.current = null;
+    }
+    setIsMicActive(false);
+    addTerminalLog('INFO', 'Microphone stopped.');
   };
 
   // --- Screen Capture Engine ---
@@ -195,6 +312,18 @@ export default function App() {
       if (data.type === 'connected') {
         addTerminalLog('SYSTEM', data.message);
         return;
+      }
+
+      if (data.type === 'audio_response') {
+        playAudioChunk(data.data);
+      }
+
+      if (data.type === 'text_response') {
+        addTerminalLog('SYSTEM', `[Rakshak]: ${data.text}`);
+        setSession(s => ({ ...s, warningActive: true, conversationHistory: [...s.conversationHistory, data.text] }));
+        
+        // Show verdict overlay
+        setVerdict(prev => prev || { scam: true, reason: 'Live interaction warning.', confidence: 99, warning_hi: data.text });
       }
 
       if (data.type === 'verdict') {
@@ -271,7 +400,13 @@ ${screen.message}
       }
     }
 
+    // Deduplicate: Don't send if the frame and text context haven't changed since the last send
+    if (frameData === lastSentFrameRef.current && textContext === lastSentTextContextRef.current) {
+      return;
+    }
+
     lastSentFrameRef.current = frameData;
+    lastSentTextContextRef.current = textContext;
 
     targetSocket.send(JSON.stringify({
       type: 'screen_frame',
@@ -286,12 +421,17 @@ ${screen.message}
     setSession(s => ({ ...s, currentScenario: screen.id, warningActive: false }));
     window.speechSynthesis.cancel();
     isWarningActiveRef.current = false;
+    
+    // Clear last sent tracking so it forces a fresh send immediately on change
+    lastSentFrameRef.current = '';
+    lastSentTextContextRef.current = '';
+    
     setCurrentScreen(screen);
   }, []);
 
   // --- Frame Streaming Loop ---
   useEffect(() => {
-    let intervalId: NodeJS.Timeout;
+    let intervalId: ReturnType<typeof setInterval>;
     
     if (session.watching && isScreenCapturing) {
       addTerminalLog('SYSTEM', 'Streaming live frames to AI core...');
@@ -378,6 +518,45 @@ ${screen.message}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <select 
+            className="textarea-custom" 
+            style={{ padding: '0.2rem 0.5rem', minHeight: 'auto', backgroundColor: '#252936', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
+            value={session.voice}
+            onChange={(e) => {
+              const voice = e.target.value;
+              localStorage.setItem('rakshak_voice', voice);
+              setSession(s => ({ ...s, voice }));
+              if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+                socketRef.current.send(JSON.stringify({ type: 'setup_live_api', lang: session.language, voice }));
+              }
+              addTerminalLog('SYSTEM', `Voice changed to ${voice}`);
+            }}
+          >
+            <option value="Aoede">Aoede (Soft Female)</option>
+            <option value="Kore">Kore (Clear Female)</option>
+            <option value="Puck">Puck (Warm Male)</option>
+            <option value="Charon">Charon (Deep Male)</option>
+            <option value="Fenrir">Fenrir (Bold Male)</option>
+          </select>
+          <select 
+            className="textarea-custom" 
+            style={{ padding: '0.2rem 0.5rem', minHeight: 'auto', backgroundColor: '#252936', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
+            value={session.language}
+            onChange={(e) => {
+              const lang = e.target.value;
+              localStorage.setItem('rakshak_language', lang);
+              setSession(s => ({ ...s, language: lang }));
+              if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+                socketRef.current.send(JSON.stringify({ type: 'setup_live_api', lang, voice: session.voice }));
+              }
+              addTerminalLog('SYSTEM', `Language changed to ${lang}`);
+            }}
+          >
+            <option value="hi-IN">Hindi</option>
+            <option value="en-US">English</option>
+            <option value="kn-IN">Kannada</option>
+            <option value="te-IN">Telugu</option>
+          </select>
           <span style={{ fontSize: '0.85rem', color: session.connected ? 'var(--guardian-emerald)' : 'var(--text-muted)' }}>
             ● {session.connected ? 'LIVE SESSION ACTIVE' : 'OFFLINE'}
           </span>
@@ -500,8 +679,16 @@ ${screen.message}
             <button 
               className={`btn-connect ${isScreenCapturing ? 'active' : 'inactive'}`}
               onClick={isScreenCapturing ? stopScreenCapture : startScreenCapture}
+              style={{ marginBottom: '10px' }}
             >
               {isScreenCapturing ? <><MonitorStop size={20} /> Stop Screen Capture</> : <><MonitorPlay size={20} /> Start Screen Capture</>}
+            </button>
+            <button 
+              className={`btn-connect ${isMicActive ? 'active' : 'inactive'}`}
+              onClick={isMicActive ? stopMic : startMic}
+              style={{ borderColor: isMicActive ? 'var(--guardian-emerald)' : 'rgba(255,255,255,0.1)' }}
+            >
+              {isMicActive ? '🎤 Stop Microphone' : '🎤 Open Microphone'}
             </button>
           </div>
 

@@ -97,135 +97,6 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 /**
- * Sends a POST request to the Google Gemini API to analyze the given screen frame
- * and context text based on the defined scam prevention rules.
- * 
- * @async
- * @function analyzeScreenFrame
- * @param {string} base64Image - Base64 encoded image string (JPEG/PNG) representing the screen capture.
- * @param {string} textContext - Extracted text, active UI state, or user journey description.
- * @returns {Promise<object>} Object containing the scam assessment: { scam: boolean, confidence: number, reason: string, warning_hi: string }
- */
-async function analyzeScreenFrame(base64Image, textContext) {
-  logger.logFunctionCall('analyzeScreenFrame', { 
-    base64ImageLength: base64Image ? base64Image.length : 0, 
-    textContext 
-  });
-
-  const apiKey = config.GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
-    logger.warn('Missing or placeholder GEMINI_API_KEY. Using deterministic offline fallback cache.');
-    return getOfflineFallbackVerdict(textContext);
-  }
-
-  const model = config.GEMINI_MODEL;
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-  // Build standard Gemini Vision content payload
-  const payload = {
-    contents: [
-      {
-        parts: [
-          {
-            inlineData: {
-              mimeType: 'image/jpeg',
-              data: base64Image
-            }
-          },
-          {
-            text: `[SCREEN CONTENT ANALYSIS]
-Identify if this payment screen is a scam/deception.
-
-[SCREEN EXTRACTED TEXT OR CONTEXT]
-${textContext || 'No additional text context extracted.'}
-
-Provide your analysis in accordance with your security guidelines.`
-          }
-        ]
-      }
-    ],
-    systemInstruction: {
-      parts: [
-        { text: config.SYSTEM_INSTRUCTION }
-      ]
-    },
-    generationConfig: {
-      responseMimeType: 'application/json'
-    }
-  };
-
-  try {
-    logger.logGenAICall(model, payload.contents, payload.generationConfig, 'Awaiting API Response...');
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      logger.error(`Gemini API HTTP Error ${response.status}: ${errText}`);
-      logger.warn('Falling back to offline deterministic cache due to API error.');
-      return getOfflineFallbackVerdict(textContext);
-    }
-
-    const data = await response.json();
-    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    
-    if (!resultText) {
-      throw new Error('No classification text returned from Gemini.');
-    }
-
-    const verdict = JSON.parse(resultText.trim());
-    
-    logger.logGenAICall(model, payload.contents, payload.generationConfig, verdict);
-    return verdict;
-
-  } catch (err) {
-    logger.error('Error during live Gemini analysis:', err);
-    logger.warn('Falling back to offline deterministic cache due to exception.');
-    return getOfflineFallbackVerdict(textContext);
-  }
-}
-
-/**
- * Provides a deterministic offline fallback verdict based on text context matching.
- * Ensures the demo works perfectly even without an active internet connection or API key.
- * 
- * @param {string} textContext - The screen text to evaluate.
- * @returns {object} The mock verdict.
- */
-function getOfflineFallbackVerdict(textContext) {
-  const context = (textContext || '').toLowerCase();
-  
-  if (context.includes('kaun banega crorepati') || context.includes('lottery win')) {
-    return {
-      scam: true,
-      confidence: 0.98,
-      reason: 'User is told they won a lottery and need to enter PIN to claim refund/reward.',
-      warning_hi: 'Ruko! Ye paisa lene ka nahi, dene ka request hai. PIN daalte hi aapke account se paise kat jaayenge. Paisa lene ke liye kabhi PIN nahi daala jaata. Ye scam hai.'
-    };
-  }
-  
-  if (context.includes('paytm verification') || context.includes('kyc update') || context.includes('income tax') || context.includes('refund processing')) {
-    return {
-      scam: true,
-      confidence: 0.94,
-      reason: 'Urgent pressure applied to pay a processing fee or verify account under the guise of an official entity.',
-      warning_hi: 'Ruko! Koi bhi bank ya tax department verification ke liye paise nahi maangta. Ye fraud message hai. Apna PIN mat daalo.'
-    };
-  }
-  
-  return {
-    scam: false,
-    confidence: 0.95,
-    reason: 'Offline Default: Appears to be a legitimate user-initiated payment or no deception markers found.',
-    warning_hi: ''
-  };
-}
-
-/**
  * Handles incoming messages from WebSocket clients. Parses the message type,
  * routes the analysis payload to Gemini, and replies with structured verdicts.
  * Also handles mock test requests to bypass the Gemini API.
@@ -233,10 +104,9 @@ function getOfflineFallbackVerdict(textContext) {
  * @function handleClientMessage
  * @param {WebSocket} ws - The client WebSocket connection object.
  * @param {string} rawMessage - Raw stringified JSON message received from the client.
+ * @param {object} session - Session object holding Gemini connection
  */
-async function handleClientMessage(ws, rawMessage) {
-  logger.logFunctionCall('handleClientMessage', { rawMessageLength: rawMessage ? rawMessage.length : 0 });
-
+async function handleClientMessage(ws, rawMessage, session) {
   try {
     const message = JSON.parse(rawMessage);
     
@@ -246,35 +116,59 @@ async function handleClientMessage(ws, rawMessage) {
         ws.send(JSON.stringify({ type: 'pong' }));
         break;
 
+      case 'setup_language':
+      case 'setup_live_api':
+        logger.info(`Setting up Gemini WS for language: ${message.lang}, voice: ${message.voice || 'Aoede'}`);
+        session.language = message.lang || session.language;
+        session.voice = message.voice || session.voice || 'Aoede';
+        initGeminiConnection(ws, session);
+        break;
+
       case 'screen_frame':
+        if (!session.geminiWs || session.geminiWs.readyState !== WebSocket.OPEN) return;
         // Standard live streaming frame from frontend
         const base64Data = message.data; // should be stripped of the "data:image/jpeg;base64," prefix if present
         const cleanBase64 = base64Data.includes('base64,') 
           ? base64Data.split('base64,')[1] 
           : base64Data;
         
-        const verdict = await analyzeScreenFrame(cleanBase64, message.textContext);
-        ws.send(JSON.stringify({
-          type: 'verdict',
-          ...verdict
+        session.geminiWs.send(JSON.stringify({
+          clientContent: {
+            turns: [{
+              role: 'user',
+              parts: [
+                { text: `[SCREEN CONTENT CONTEXT]\n${message.textContext || ''}` },
+                { inlineData: { mimeType: 'image/jpeg', data: cleanBase64 } }
+              ]
+            }],
+            turnComplete: true
+          }
+        }));
+        break;
+
+      case 'audio_chunk':
+        if (!session.geminiWs || session.geminiWs.readyState !== WebSocket.OPEN) return;
+        session.geminiWs.send(JSON.stringify({
+          realtimeInput: {
+            mediaChunks: [{
+              mimeType: 'audio/pcm;rate=16000',
+              data: message.data
+            }]
+          }
         }));
         break;
 
       case 'mock_scam':
-        // Non-destructive mock test for UI validation (Scenario: PIN-to-receive)
-        logger.info('Handling mock_scam message for UI testing.');
         ws.send(JSON.stringify({
           type: 'verdict',
           scam: true,
           confidence: 0.98,
           reason: 'Mock UPI PIN-to-receive scam detected.',
-          warning_hi: 'Ruko! Ye paisa lene ka nahi, dene ka request hai. PIN daalte hi aapke account se paise kat jaayenge. Paisa lene ke liye kabhi PIN nahi daala jaata. Ye scam hai.'
+          warning_hi: 'Ruko! Ye paisa lene ka nahi, dene ka request hai. PIN daalte hi aapke account se paise kat jaayenge. Ye scam hai.'
         }));
         break;
 
       case 'mock_legit':
-        // Non-destructive mock test for UI validation (Scenario: QR Merchant Pay)
-        logger.info('Handling mock_legit message for UI testing.');
         ws.send(JSON.stringify({
           type: 'verdict',
           scam: false,
@@ -295,17 +189,98 @@ async function handleClientMessage(ws, rawMessage) {
   }
 }
 
+function initGeminiConnection(clientWs, session) {
+  if (session.geminiWs) {
+    session.geminiWs.close();
+  }
+
+  const apiKey = config.GEMINI_API_KEY;
+  if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
+    logger.warn('Missing GEMINI_API_KEY. Live API will not work.');
+    return;
+  }
+
+  // Use the specific Hackathon Track 1 model
+  const model = 'models/gemini-3.1-flash-live-preview';
+  const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
+  
+  session.geminiWs = new WebSocket(url);
+  
+  session.geminiWs.on('open', () => {
+    logger.info('Connected to Gemini Live API');
+    
+    // Send Setup Message
+    const setupMsg = {
+      setup: {
+        model: model,
+        systemInstruction: {
+          parts: [{ text: config.SYSTEM_INSTRUCTION + `\n\nUser Language: ${session.language}` }]
+        },
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName: session.voice || "Aoede"
+              }
+            }
+          }
+        }
+      }
+    };
+    session.geminiWs.send(JSON.stringify(setupMsg));
+  });
+
+  session.geminiWs.on('message', (data) => {
+    try {
+      const response = JSON.parse(data);
+      if (response.serverContent?.modelTurn?.parts) {
+        response.serverContent.modelTurn.parts.forEach(part => {
+          if (part.inlineData && part.inlineData.mimeType.startsWith('audio/pcm')) {
+            clientWs.send(JSON.stringify({
+              type: 'audio_response',
+              data: part.inlineData.data
+            }));
+          }
+          if (part.text) {
+            clientWs.send(JSON.stringify({
+              type: 'text_response',
+              text: part.text
+            }));
+          }
+        });
+      }
+    } catch (e) {
+      logger.error('Error parsing Gemini WS message', e);
+    }
+  });
+
+  session.geminiWs.on('close', () => logger.info('Gemini WS closed'));
+  session.geminiWs.on('error', (e) => logger.error('Gemini WS error:', e));
+}
+
+
 // WS Connection listener
 wss.on('connection', (ws, req) => {
   const clientIp = req.socket.remoteAddress;
   logger.logFunctionCall('wss.on(connection)', { clientIp });
 
+  // Session state per client
+  const session = {
+    language: 'hi-IN',
+    voice: 'Aoede',
+    geminiWs: null
+  };
+
   ws.on('message', (rawMessage) => {
-    handleClientMessage(ws, rawMessage);
+    handleClientMessage(ws, rawMessage, session);
   });
 
   ws.on('close', () => {
     logger.info(`WebSocket connection closed by client: ${clientIp}`);
+    if (session.geminiWs) {
+      session.geminiWs.close();
+    }
   });
 
   ws.on('error', (err) => {
