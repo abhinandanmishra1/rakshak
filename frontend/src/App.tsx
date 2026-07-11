@@ -63,7 +63,7 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   
   // Tracking for debounce and capture
-  const lastSpokenWarningRef = useRef<string | null>(null);
+  const isWarningActiveRef = useRef<boolean>(false);
   const lastSentFrameRef = useRef<string>('');
 
   // --- Screen Capture State ---
@@ -211,10 +211,10 @@ export default function App() {
           });
           setSession(s => ({ ...s, warningActive: true, conversationHistory: [...s.conversationHistory, data.warning_hi] }));
           
-          // Debounce TTS and capture log only if it's a new scam warning
-          if (lastSpokenWarningRef.current !== data.warning_hi) {
+          // Debounce TTS and capture log only if we are not already showing a warning
+          if (!isWarningActiveRef.current) {
+            isWarningActiveRef.current = true;
             playVoiceWarning(data.warning_hi);
-            lastSpokenWarningRef.current = data.warning_hi;
             
             // Capture fraud log with the last sent frame
             setFraudLogs(prev => [{
@@ -230,7 +230,7 @@ export default function App() {
           setVerdict(null);
           setSession(s => ({ ...s, warningActive: false }));
           window.speechSynthesis.cancel();
-          lastSpokenWarningRef.current = null; // Reset debounce on safe screen
+          isWarningActiveRef.current = false; // Reset debounce on safe screen
         }
       }
     } catch (err) {
@@ -285,6 +285,7 @@ ${screen.message}
     setVerdict(null);
     setSession(s => ({ ...s, currentScenario: screen.id, warningActive: false }));
     window.speechSynthesis.cancel();
+    isWarningActiveRef.current = false;
     setCurrentScreen(screen);
   }, []);
 
@@ -356,6 +357,7 @@ ${screen.message}
     setVerdict(null);
     setSession(s => ({ ...s, warningActive: false }));
     window.speechSynthesis.cancel();
+    isWarningActiveRef.current = false;
   };
 
   return (

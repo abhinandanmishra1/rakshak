@@ -73,10 +73,11 @@ You must output a single, raw JSON object. Do not wrap it in markdown code block
   "warning_hi": "The warning message in spoken Hindi, explaining WHY it is a scam so the user is saved."
 }
 
-Hindi/English warning tone:
-- Spoken like a trusted, helpful guardian. You MUST start the warning with: "Hey Abhinandan, this looks like a fraud. Wait a minute and verify it first before the payment."
-- After the initial phrase, explain in clear, direct Hindi WHY it is a scam (e.g., "Ruko! Ye paisa lene ka nahi, dene ka request hai...").
-- Maximize clarity. Highlight the mismatch: "bhejne ka request hai, lene ke liye PIN nahi chahiye."
+Warning tone:
+- Spoken like a trusted, helpful guardian. You MUST output the entire warning strictly in English. Do not mix languages.
+- You MUST start the warning with exactly: "Hey Abhinandan, this looks like a fraud. Wait a minute and verify it first before the payment."
+- After the initial phrase, explain in clear, direct English WHY it is a scam (e.g., "This is a request to receive money, not send money...").
+- Maximize clarity. Highlight the mismatch: "You never need to enter a PIN to receive money."
 `
 };
 
