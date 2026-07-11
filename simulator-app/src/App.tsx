@@ -262,11 +262,12 @@ const STATIC_SCREENS = [
 ];
 
 function App() {
-  const [viewMode, setViewMode] = useState<'dynamic' | 'static'>('static');
+  const [viewMode] = useState<'dynamic' | 'static'>('static');
   const [prompt, setPrompt] = useState('Create a fake Netflix subscription renewal popup asking for ₹499 via UPI to avoid account suspension.');
   const [htmlContent, setHtmlContent] = useState(() => STATIC_SCREENS.find(s => s.id === 'home_screen')?.html || '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   // We assume the Rakshak backend is running on port 5001
   const RAKSHAK_BACKEND_URL = 'http://localhost:5001';
@@ -290,6 +291,7 @@ function App() {
         throw new Error(data.error);
       }
       setHtmlContent(data.html);
+      setIsSidebarExpanded(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate');
     } finally {
@@ -299,14 +301,62 @@ function App() {
 
   const loadStaticScreen = (html: string) => {
     setHtmlContent(html);
+    setIsSidebarExpanded(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-row">
+    <div className="min-h-screen bg-gray-100 flex flex-row relative">
+      {/* Floating Toggle Button when collapsed */}
+      {!isSidebarExpanded && (
+        <button
+          onClick={() => setIsSidebarExpanded(true)}
+          style={{
+            position: 'fixed',
+            left: '16px',
+            top: '16px',
+            zIndex: 50,
+            backgroundColor: '#0066cc',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '50%',
+            width: '44px',
+            height: '44px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.25rem',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            transition: 'all 0.2s ease-in-out'
+          }}
+          title="Expand Control Panel"
+        >
+          ☰
+        </button>
+      )}
+
       {/* Control Panel - Left Side */}
-      <div className="w-[380px] flex-shrink-0 p-6 bg-white shadow-2xl z-10 flex flex-col border-r border-gray-300 overflow-y-auto">
+      <div 
+        className="flex-shrink-0 p-6 bg-white shadow-2xl z-10 flex flex-col border-r border-gray-300 overflow-y-auto transition-all duration-300 ease-in-out"
+        style={{
+          width: isSidebarExpanded ? '380px' : '0px',
+          padding: isSidebarExpanded ? '1.5rem' : '0px',
+          opacity: isSidebarExpanded ? 1 : 0,
+          pointerEvents: isSidebarExpanded ? 'auto' : 'none',
+          borderRight: isSidebarExpanded ? '1px solid #d1d5db' : 'none',
+          overflow: 'hidden'
+        }}
+      >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Fraud Scenario Simulator</h2>
+          <h2 className="text-2xl font-bold text-gray-800 whitespace-nowrap">Fraud Scenario Simulator</h2>
+          <button 
+            onClick={() => setIsSidebarExpanded(false)}
+            className="text-gray-400 hover:text-gray-600 font-bold p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+            title="Collapse Control Panel"
+            style={{ fontSize: '1.1rem', border: 'none', background: 'none', cursor: 'pointer' }}
+          >
+            ✕
+          </button>
         </div>
 
         {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded border border-red-200">{error}</div>}
