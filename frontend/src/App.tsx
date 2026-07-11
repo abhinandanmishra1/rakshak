@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Radio, ShieldCheck, Volume2, Eye, ArrowRight, Home, Terminal } from 'lucide-react';
+import { Radio, ShieldCheck, Volume2, Eye, ArrowRight, LayoutDashboard, Settings, FileText, ChevronRight } from 'lucide-react';
 import { config } from './config.ts';
 
 interface LogEntry {
@@ -53,6 +53,7 @@ export default function App() {
   const [verdict, setVerdict] = useState<{ scam: boolean; reason: string; warning_hi: string; confidence?: number } | null>(null);
   const [terminalLogs, setTerminalLogs] = useState<LogEntry[]>([]);
   const [fraudLogs, setFraudLogs] = useState<FraudLog[]>([]);
+  const [ttsMissing, setTtsMissing] = useState<boolean>(true);
 
   // Ref holders for background processing
   const socketRef = useRef<WebSocket | null>(null);
@@ -85,10 +86,14 @@ export default function App() {
         const voices = window.speechSynthesis.getVoices();
         const hasHindi = voices.some(v => v.lang.includes('hi-IN'));
         if (!hasHindi) {
+          setTtsMissing(true);
           addTerminalLog('WARN', 'Hindi Speech Synthesis voice not found. PCM Audio stream fallback active.');
+        } else {
+          setTtsMissing(false);
         }
       }, 1000); // Give time for voices to load
     } else {
+      setTtsMissing(true);
       addTerminalLog('ERROR', 'Speech Synthesis API not supported on this browser.');
     }
   }, []);
@@ -556,47 +561,188 @@ export default function App() {
   }
 
   return (
-    <div className="app-layout">
+    <div className="app-layout" style={{ display: 'flex', backgroundColor: '#f8fafc', minHeight: '100vh', width: '100%' }}>
       {/* Left Sidebar */}
-      <aside className="sidebar">
+      <aside className="sidebar" style={{
+        width: '280px',
+        backgroundColor: '#ffffff',
+        borderRight: '1px solid rgba(0, 0, 0, 0.05)',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '2rem 1.5rem',
+        flexShrink: 0,
+        height: '100vh',
+        position: 'sticky',
+        top: 0
+      }}>
         {/* Brand Section */}
-        <div className="sidebar-brand">
-          <div className="sidebar-logo">🛡️</div>
-          <div className="sidebar-brand-title">
-            <h1>Rakshak</h1>
-            <p>PROACTIVE AI GUARDIAN</p>
+        <div className="sidebar-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem' }}>
+          <div className="sidebar-logo" style={{
+            width: '42px',
+            height: '42px',
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.15) 100%)',
+            border: '1px solid rgba(16, 185, 129, 0.2)',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.5rem',
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.04)'
+          }}>🛡️</div>
+          <div className="sidebar-brand-title" style={{ display: 'flex', flexDirection: 'column' }}>
+            <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0, lineHeight: 1.1 }}>Rakshak</h1>
+            <p style={{ fontSize: '0.68rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '3px 0 0 0' }}>PROACTIVE AI GUARDIAN</p>
           </div>
         </div>
 
         {/* Sidebar Nav Items */}
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexGrow: 1 }}>
           <button 
-            className={`sidebar-nav-btn ${currentPath === '/' ? 'active' : ''}`}
-            onClick={() => navigateTo('/')}
+            className="sidebar-nav-btn active"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              width: '100%',
+              padding: '0.85rem 1rem',
+              border: 'none',
+              borderRadius: '12px',
+              backgroundColor: 'rgba(16, 185, 129, 0.08)',
+              color: 'var(--guardian-emerald)',
+              fontFamily: 'var(--font-sans)',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              textAlign: 'left',
+              cursor: 'pointer'
+            }}
           >
-            <Home size={18} />
-            <span>Home</span>
+            <LayoutDashboard size={18} />
+            <span>Dashboard</span>
           </button>
 
           <button 
-            className={`sidebar-nav-btn ${currentPath === '/dashboard' ? 'active' : ''}`}
-            onClick={() => navigateTo('/dashboard')}
+            className="sidebar-nav-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              width: '100%',
+              padding: '0.85rem 1rem',
+              border: 'none',
+              borderRadius: '12px',
+              backgroundColor: 'transparent',
+              color: '#64748b',
+              fontFamily: 'var(--font-sans)',
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              textAlign: 'left',
+              cursor: 'pointer'
+            }}
           >
-            <Terminal size={18} />
+            <Eye size={18} />
             <span>Guardian View</span>
+          </button>
+
+          <button 
+            className="sidebar-nav-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              width: '100%',
+              padding: '0.85rem 1rem',
+              border: 'none',
+              borderRadius: '12px',
+              backgroundColor: 'transparent',
+              color: '#64748b',
+              fontFamily: 'var(--font-sans)',
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              textAlign: 'left',
+              cursor: 'pointer'
+            }}
+          >
+            <Radio size={18} />
+            <span>Live Session</span>
+          </button>
+
+          <button 
+            className="sidebar-nav-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              width: '100%',
+              padding: '0.85rem 1rem',
+              border: 'none',
+              borderRadius: '12px',
+              backgroundColor: 'transparent',
+              color: '#64748b',
+              fontFamily: 'var(--font-sans)',
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              textAlign: 'left',
+              cursor: 'pointer'
+            }}
+          >
+            <FileText size={18} />
+            <span>Event Logs</span>
+          </button>
+
+          <button 
+            className="sidebar-nav-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              width: '100%',
+              padding: '0.85rem 1rem',
+              border: 'none',
+              borderRadius: '12px',
+              backgroundColor: 'transparent',
+              color: '#64748b',
+              fontFamily: 'var(--font-sans)',
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              textAlign: 'left',
+              cursor: 'pointer'
+            }}
+          >
+            <Settings size={18} />
+            <span>Settings</span>
           </button>
         </nav>
 
         {/* System Status bottom card */}
-        <div className="sidebar-status-card">
-          <div className="sidebar-status-header">
-            <div className="sidebar-status-icon">✓</div>
-            <div className="sidebar-status-title">
-              <span className="sidebar-status-label">System Status</span>
-              <span className="sidebar-status-value">STANDBY</span>
+        <div className="sidebar-status-card" style={{
+          backgroundColor: '#f8fafc',
+          border: '1px solid rgba(0, 0, 0, 0.04)',
+          borderRadius: '16px',
+          padding: '1.25rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          marginTop: 'auto',
+          boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.005)'
+        }}>
+          <div className="sidebar-status-header" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div className="sidebar-status-icon" style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              color: 'var(--guardian-emerald)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 'bold'
+            }}>✓</div>
+            <div className="sidebar-status-title" style={{ display: 'flex', flexDirection: 'column' }}>
+              <span className="sidebar-status-label" style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>System Status</span>
+              <span className="sidebar-status-value" style={{ fontSize: '0.88rem', color: 'var(--guardian-emerald)', fontWeight: 750, letterSpacing: '0.05em' }}>STANDBY</span>
             </div>
           </div>
-          <span className="sidebar-status-desc">All systems nominal</span>
+          <span className="sidebar-status-desc" style={{ fontSize: '0.78rem', color: '#64748b' }}>All systems nominal</span>
           {/* Animated Waveform */}
           <div className="sparkline-wave">
             <div className="sparkline-bar"></div>
@@ -612,50 +758,98 @@ export default function App() {
       </aside>
 
       {/* Right Main Content Panel */}
-      <div className="main-panel">
-        {/* Main Content Header */}
-        <header className="app-header" style={{
+      <div className="main-panel" style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', overflowY: 'auto' }}>
+        {/* Top Control Bar containing Warning and Selectors */}
+        <div style={{
           padding: '1.5rem 2rem',
-          backgroundColor: '#ffffff',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          gap: '1rem',
+          flexWrap: 'wrap',
           flexShrink: 0
         }}>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
-              Guardian View
-            </h2>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Real-time proactive monitoring stream
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            {/* Elegant Language Selector Dropdown with light background */}
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              backgroundColor: '#f1f5f9', 
-              padding: '0.45rem 0.85rem', 
-              borderRadius: '10px', 
-              border: '1px solid #e2e8f0',
-              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)'
+          {/* Warning Speech Synthesis Banner */}
+          {ttsMissing ? (
+            <div style={{
+              background: '#fef2f2',
+              border: '1px solid #fee2e2',
+              color: '#ef4444',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '10px',
+              fontSize: '0.82rem',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              flexGrow: 1,
+              maxWidth: '750px',
+              boxShadow: '0 2px 8px rgba(239, 68, 68, 0.02)'
             }}>
-              <span style={{ fontSize: '0.95rem', color: '#64748b', display: 'flex', alignItems: 'center' }}>🌐</span>
+              <span style={{ fontSize: '1rem' }}>⚠️</span>
+              <span>Warning: hi-IN (Hindi) Speech Synthesis voice not found on this browser. Voice warnings may be silent.</span>
+            </div>
+          ) : (
+            <div style={{ flexGrow: 1 }} />
+          )}
+
+          {/* Right Controls Dropdowns and Badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: 'auto' }}>
+            {/* Voice Dropdown with signal icon */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: '#ffffff',
+              padding: '0.45rem 0.85rem',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+            }}>
+              <Radio size={14} style={{ color: '#64748b' }} />
               <select 
-                style={{ 
-                  border: 'none', 
-                  backgroundColor: 'transparent', 
-                  color: '#0f172a', 
-                  fontSize: '0.88rem', 
-                  fontWeight: 700, 
-                  outline: 'none', 
-                  cursor: 'pointer',
-                  padding: '0 0.25rem'
+                value={session.voice}
+                onChange={(e) => {
+                  const voice = e.target.value;
+                  localStorage.setItem('rakshak_voice', voice);
+                  setSession(s => ({ ...s, voice }));
+                  if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+                    lastSentFrameRef.current = '';
+                    socketRef.current.send(JSON.stringify({ type: 'setup_live_api', lang: session.language, voice }));
+                  } else {
+                    addTerminalLog('SYSTEM', `Voice configured to ${voice} (will apply on next connection)`);
+                  }
                 }}
+                style={{
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: '#334155',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="Aoede">Aoede (Soft Female)</option>
+                <option value="Kore">Kore (Clear Female)</option>
+                <option value="Puck">Puck (Warm Male)</option>
+                <option value="Charon">Charon (Deep Male)</option>
+                <option value="Fenrir">Fenrir (Bold Male)</option>
+              </select>
+            </div>
+
+            {/* Language Dropdown */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: '#ffffff',
+              padding: '0.45rem 0.85rem',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+            }}>
+              <select 
                 value={session.language}
                 onChange={(e) => {
                   const lang = e.target.value;
@@ -668,42 +862,142 @@ export default function App() {
                     addTerminalLog('SYSTEM', `Language configured to ${lang} (will apply on next connection)`);
                   }
                 }}
+                style={{
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: '#334155',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
               >
-                <option value="hi-IN">Hindi (हिंदी)</option>
+                <option value="hi-IN">Hindi</option>
                 <option value="en-US">English</option>
-                <option value="kn-IN">Kannada (ಕನ್ನಡ)</option>
-                <option value="te-IN">Telugu (తెలుగు)</option>
+                <option value="kn-IN">Kannada</option>
+                <option value="te-IN">Telugu</option>
               </select>
             </div>
 
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: session.connected ? 'var(--guardian-emerald)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem', backgroundColor: session.connected ? 'rgba(16,185,129,0.06)' : '#f1f5f9', padding: '0.45rem 0.85rem', borderRadius: '10px', border: session.connected ? '1px solid rgba(16,185,129,0.15)' : '1px solid #e2e8f0' }}>
-              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: session.connected ? 'var(--guardian-emerald)' : '#94a3b8' }} />
-              {session.connected ? 'LIVE INTERVENTION ACTIVE' : 'OFFLINE'}
+            {/* Connection badge */}
+            <span style={{
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              color: session.connected ? 'var(--guardian-emerald)' : '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              letterSpacing: '0.05em',
+              backgroundColor: '#ffffff',
+              padding: '0.45rem 0.85rem',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+            }}>
+              <span style={{
+                display: 'inline-block',
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: session.connected ? 'var(--guardian-emerald)' : '#94a3b8'
+              }} />
+              {session.connected ? 'LIVE' : 'OFFLINE'}
             </span>
           </div>
-        </header>
+        </div>
 
         {/* Dashboard Grid Content */}
-        <div style={{ padding: '2rem', flexGrow: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-          <main className="dashboard-grid">
-            {/* Left Column: Intervention View (Screen Capture) */}
-            <section className="guardian-view" style={{ background: '#1c1f2e', borderRadius: '16px', overflow: 'hidden', position: 'relative', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-muted)' }}>Intervention Sight</h3>
-                <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: isScreenCapturing ? 'var(--guardian-emerald)' : 'var(--warning-crimson)', borderRadius: '4px', color: '#fff', fontWeight: 600 }}>
+        <div style={{ padding: '0 2rem 2rem 2rem', flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {/* Two Columns Grid for top widgets */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '2rem' }}>
+            
+            {/* Guardian View Card */}
+            <section className="guardian-view" style={{
+              background: '#ffffff',
+              border: '1px solid rgba(0, 0, 0, 0.05)',
+              borderRadius: '16px',
+              padding: '2rem',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.005)',
+              display: 'flex',
+              flexDirection: 'column',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Header inside Card */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: '3px', height: '18px', backgroundColor: '#0ea5e9', borderRadius: '2px' }} />
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>Guardian View</h3>
+                </div>
+                <span style={{
+                  fontSize: '0.72rem',
+                  padding: '0.2rem 0.6rem',
+                  background: isScreenCapturing ? 'rgba(16, 185, 129, 0.08)' : '#f1f5f9',
+                  border: isScreenCapturing ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid #e2e8f0',
+                  color: isScreenCapturing ? 'var(--guardian-emerald)' : '#64748b',
+                  borderRadius: '20px',
+                  fontWeight: 700,
+                  letterSpacing: '0.05em'
+                }}>
                   {isScreenCapturing ? 'MONITORING' : 'STANDBY'}
                 </span>
               </div>
-              <div style={{ flexGrow: 1, position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f111a', minHeight: '320px' }}>
-                <video ref={videoRef} style={{ width: '100%', height: '100%', objectFit: 'contain', display: isScreenCapturing ? 'block' : 'none' }} muted playsInline />
+
+              {/* Central Area */}
+              <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', minHeight: '260px' }}>
+                <video ref={videoRef} style={{ width: '100%', height: '100%', maxHeight: '240px', objectFit: 'contain', display: isScreenCapturing ? 'block' : 'none', borderRadius: '12px', overflow: 'hidden' }} muted playsInline />
                 <canvas ref={canvasRef} style={{ display: 'none' }} />
                 
                 {!isScreenCapturing && (
-                  <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                    <Eye size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
-                    <p>Start Screen Capture to monitor user interactions.</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
+                    <div style={{ position: 'relative', width: '160px', height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {/* Dashed outer circular tracks */}
+                      <div style={{ position: 'absolute', width: '150px', height: '150px', borderRadius: '50%', border: '1.5px dashed rgba(16, 185, 129, 0.12)', animation: 'spin 60s linear infinite' }} />
+                      <div style={{ position: 'absolute', width: '120px', height: '120px', borderRadius: '50%', border: '1px solid rgba(16, 185, 129, 0.06)' }} />
+                      
+                      {/* Center shield badge */}
+                      <div style={{
+                        width: '90px',
+                        height: '90px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(16, 185, 129, 0.08) 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 6px 20px rgba(16, 185, 129, 0.05)',
+                        border: '1px solid rgba(16, 185, 129, 0.12)'
+                      }}>
+                        <ShieldCheck size={42} strokeWidth={1.5} style={{ color: 'var(--guardian-emerald)' }} />
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '0.9rem', color: '#475569', fontWeight: 550, margin: 0, textAlign: 'center' }}>
+                      Start Screen Capture to monitor device activity.
+                    </p>
                   </div>
                 )}
+
+                {/* Pill Screen Capture button centered underneath */}
+                <button 
+                  onClick={isScreenCapturing ? stopScreenCapture : startScreenCapture}
+                  style={{
+                    marginTop: '1rem',
+                    padding: '0.6rem 1.35rem',
+                    borderRadius: '24px',
+                    background: isScreenCapturing ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+                    color: isScreenCapturing ? 'var(--warning-crimson)' : 'var(--guardian-emerald)',
+                    border: isScreenCapturing ? '1px solid rgba(239, 68, 68, 0.15)' : '1px solid rgba(16, 185, 129, 0.15)',
+                    fontSize: '0.88rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }}
+                >
+                  <Eye size={16} />
+                  {isScreenCapturing ? 'Stop Screen Capture' : 'Start Screen Capture'}
+                </button>
               </div>
 
               {/* --- PREMIUM AI OVERLAY --- */}
@@ -745,151 +1039,212 @@ export default function App() {
               )}
             </section>
 
-            {/* Right Column: Controls */}
-            <section className="controls-column">
-              <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '16px', padding: '1.5rem', boxShadow: 'var(--shadow-sm)' }}>
-                <h3 className="glass-panel-title" style={{ margin: 0, paddingBottom: '0.5rem', borderBottom: '1px solid rgba(0,0,0,0.03)', fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ display: 'inline-block', width: '4px', height: '16px', backgroundColor: '#0072ff', borderRadius: '2px' }} />
-                  Live Session Manager
-                </h3>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {/* Connection Row */}
-                  <button 
-                    onClick={session.connected ? disconnectWebSocket : connectWebSocket}
-                    className={`interactive-row-btn ${session.connected ? 'active' : ''}`}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '10px',
-                        backgroundColor: session.connected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(0, 114, 255, 0.08)',
-                        color: session.connected ? 'var(--guardian-emerald)' : '#0072ff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <Radio size={18} />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#0f172a' }}>
-                          {session.connected ? 'Connected to AI Engine' : 'Open Live Session'}
-                        </span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {session.connected ? 'WebSocket stream active' : 'Initialize secure bidirectional socket'}
-                        </span>
-                      </div>
-                    </div>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>➔</span>
-                  </button>
-
-                  {/* Screen Capture Row */}
-                  <button 
-                    onClick={isScreenCapturing ? stopScreenCapture : startScreenCapture}
-                    className={`interactive-row-btn ${isScreenCapturing ? 'active' : ''}`}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '10px',
-                        backgroundColor: isScreenCapturing ? 'rgba(16, 185, 129, 0.1)' : 'rgba(0, 114, 255, 0.08)',
-                        color: isScreenCapturing ? 'var(--guardian-emerald)' : '#0072ff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <Eye size={18} />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#0f172a' }}>
-                          {isScreenCapturing ? 'Capturing Device Screen' : 'Start Screen Capture'}
-                        </span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {isScreenCapturing ? 'Frames streaming live' : 'Observe device interactions proactively'}
-                        </span>
-                      </div>
-                    </div>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>➔</span>
-                  </button>
-
-                  {/* Microphone Row */}
-                  <button 
-                    onClick={isMicActive ? stopMic : startMic}
-                    className={`interactive-row-btn ${isMicActive ? 'active' : ''}`}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '10px',
-                        backgroundColor: isMicActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(0, 114, 255, 0.08)',
-                        color: isMicActive ? 'var(--guardian-emerald)' : '#0072ff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <Volume2 size={18} />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#0f172a' }}>
-                          {isMicActive ? 'Bilingual Verbal Shield Active' : 'Open Microphone'}
-                        </span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {isMicActive ? 'Listening for verbal clues' : 'Enable voice-driven discussion shield'}
-                        </span>
-                      </div>
-                    </div>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>➔</span>
-                  </button>
-                </div>
+            {/* Live Session Manager Card */}
+            <section className="live-session-manager" style={{
+              background: '#ffffff',
+              border: '1px solid rgba(0, 0, 0, 0.05)',
+              borderRadius: '16px',
+              padding: '2rem',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.005)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.25rem'
+            }}>
+              {/* Card Header Title */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <div style={{ width: '3px', height: '18px', backgroundColor: '#0ea5e9', borderRadius: '2px' }} />
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>Live Session Manager</h3>
               </div>
-
-              {/* Console Event Streams */}
-              <div className="glass-panel" style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '1rem', background: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '16px', padding: '1.5rem', boxShadow: 'var(--shadow-sm)', minHeight: '220px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(0,0,0,0.03)' }}>
-                  <h3 className="glass-panel-title" style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ display: 'inline-block', width: '4px', height: '16px', backgroundColor: '#0072ff', borderRadius: '2px' }} />
-                    Console Event Streams
-                  </h3>
-                  <button 
-                    onClick={() => setTerminalLogs([])}
-                    style={{
-                      border: 'none',
-                      background: 'transparent',
-                      color: 'var(--text-muted)',
-                      fontSize: '0.85rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
+              
+              {/* Control Rows */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {/* Connection Row */}
+                <button 
+                  onClick={session.connected ? disconnectWebSocket : connectWebSocket}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '1.1rem 1.25rem',
+                    borderRadius: '12px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid rgba(0, 0, 0, 0.05)',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.005)',
+                    cursor: 'pointer',
+                    width: '100%',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '10px',
+                      backgroundColor: session.connected ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.03)',
+                      color: session.connected ? 'var(--guardian-emerald)' : '#94a3b8',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.25rem',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '6px',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    🗑️ Clear
-                  </button>
-                </div>
-                <div className="terminal-console" ref={logContainerRef} style={{ maxHeight: '180px', flexGrow: 1, minHeight: '120px', backgroundColor: '#0f172a', padding: '1rem', borderRadius: '10px', overflowY: 'auto' }}>
-                  {terminalLogs.map((log, index) => (
-                    <div key={index} className="terminal-line" style={{ marginBottom: '4px', fontSize: '0.85rem', fontFamily: 'monospace' }}>
-                      <span className="terminal-line-timestamp" style={{ color: '#94a3b8', marginRight: '6px' }}>[{log.timestamp}]</span>
-                      <span className={`terminal-line-${log.level.toLowerCase()}`} style={{ 
-                        color: log.level === 'SYSTEM' ? '#38bdf8' : log.level === 'WARN' ? '#f59e0b' : log.level === 'ERROR' ? '#ef4444' : '#10b981'
-                      }}>[{log.level}] {log.message}</span>
+                      justifyContent: 'center'
+                    }}>
+                      <Radio size={18} />
                     </div>
-                  ))}
-                </div>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                      {session.connected ? 'Connected to AI Engine' : 'Open Live Session'}
+                    </span>
+                  </div>
+                  <ChevronRight size={18} style={{ color: '#94a3b8' }} />
+                </button>
+
+                {/* Screen Capture Row */}
+                <button 
+                  onClick={isScreenCapturing ? stopScreenCapture : startScreenCapture}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '1.1rem 1.25rem',
+                    borderRadius: '12px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid rgba(0, 0, 0, 0.05)',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.005)',
+                    cursor: 'pointer',
+                    width: '100%',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '10px',
+                      backgroundColor: isScreenCapturing ? 'rgba(0, 114, 255, 0.08)' : 'rgba(0, 114, 255, 0.03)',
+                      color: isScreenCapturing ? '#0072ff' : '#94a3b8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Eye size={18} />
+                    </div>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                      {isScreenCapturing ? 'Stop Screen Capture' : 'Start Screen Capture'}
+                    </span>
+                  </div>
+                  <ChevronRight size={18} style={{ color: '#94a3b8' }} />
+                </button>
+
+                {/* Microphone Row */}
+                <button 
+                  onClick={isMicActive ? stopMic : startMic}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '1.1rem 1.25rem',
+                    borderRadius: '12px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid rgba(0, 0, 0, 0.05)',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.005)',
+                    cursor: 'pointer',
+                    width: '100%',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '10px',
+                      backgroundColor: isMicActive ? 'rgba(168, 85, 247, 0.08)' : 'rgba(168, 85, 247, 0.03)',
+                      color: isMicActive ? '#a855f7' : '#94a3b8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Volume2 size={18} />
+                    </div>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                      {isMicActive ? 'Bilingual Verbal Shield Active' : 'Open Microphone'}
+                    </span>
+                  </div>
+                  <ChevronRight size={18} style={{ color: '#94a3b8' }} />
+                </button>
               </div>
             </section>
-          </main>
+
+          </div>
+
+          {/* Bottom Card for Event Logs */}
+          <section className="event-logs-section" style={{
+            background: '#ffffff',
+            border: '1px solid rgba(0, 0, 0, 0.05)',
+            borderRadius: '16px',
+            padding: '2rem',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.005)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: '3px', height: '18px', backgroundColor: '#0ea5e9', borderRadius: '2px' }} />
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>Event Logs</h3>
+              </div>
+              <button 
+                onClick={() => setTerminalLogs([])}
+                style={{
+                  border: '1px solid rgba(0, 0, 0, 0.05)',
+                  background: '#ffffff',
+                  color: '#475569',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '10px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.01)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>🗑️</span> Clear
+              </button>
+            </div>
+
+            <div className="terminal-console" ref={logContainerRef} style={{
+              maxHeight: '220px',
+              backgroundColor: '#f8fafc',
+              border: '1px solid rgba(0, 0, 0, 0.04)',
+              padding: '1.25rem',
+              borderRadius: '12px',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}>
+              {terminalLogs.length === 0 ? (
+                <div style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.85rem', padding: '1rem', textAlign: 'center' }}>
+                  No active console event logs.
+                </div>
+              ) : (
+                terminalLogs.map((log, index) => (
+                  <div key={index} className="terminal-line" style={{ display: 'flex', alignItems: 'center', fontSize: '0.85rem', fontFamily: 'monospace', margin: 0, lineHeight: 1.4 }}>
+                    <span className="terminal-line-timestamp" style={{ color: '#64748b', marginRight: '8px', fontWeight: 550 }}>[{log.timestamp}]</span>
+                    <span className={`terminal-line-${log.level.toLowerCase()}`} style={{ 
+                      color: log.level === 'SYSTEM' ? '#0ea5e9' : log.level === 'WARN' ? '#ef4444' : log.level === 'ERROR' ? '#ef4444' : '#10b981',
+                      fontWeight: 700,
+                      marginRight: '8px'
+                    }}>[{log.level}]</span>
+                    <span style={{ color: '#334155', fontWeight: 550 }}>{log.message}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
 
           {/* AI Intervention Logs Dashboard (Full Width Bottom) */}
           {fraudLogs.length > 0 && (
-            <section className="fraud-logs-container" style={{ marginTop: '2rem' }}>
+            <section className="fraud-logs-container" style={{ marginTop: '1rem' }}>
               <h2 className="fraud-logs-title" style={{ color: 'var(--primary-glow)', borderLeftColor: 'var(--primary-glow)', fontSize: '1.25rem', fontWeight: 800, marginBottom: '1rem' }}>
                 AI Intervention Logs
               </h2>
