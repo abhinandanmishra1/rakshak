@@ -30,7 +30,7 @@ const config = {
   // Centralized model selection
   // High quality multimodal capability model is preferred. 
   // Standard fallback models are specified here.
-  GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+  GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
 
   // WebSocket endpoints
   GEMINI_LIVE_API_URL: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent',
