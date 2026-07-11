@@ -146,7 +146,7 @@ export default function App() {
     } catch (err) {
       addTerminalLog('ERROR', `WebSocket connection failed: ${(err as Error).message}`);
     }
-  }, [currentScreen]);
+  }, [currentScreen, session.language, session.voice]);
 
   const disconnectWebSocket = useCallback(() => {
     addTerminalLog('INFO', 'Disconnecting WebSocket...');
