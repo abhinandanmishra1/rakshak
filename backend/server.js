@@ -37,6 +37,53 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'Rakshak Proxy Server' });
 });
 
+// Endpoint to dynamically generate fraudulent UI using Gemini
+app.post('/generate-fraud-ui', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    const apiKey = config.GEMINI_API_KEY;
+    if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
+      return res.status(500).json({ error: 'Valid Gemini API key required for dynamic generation.' });
+    }
+
+    const model = 'gemini-1.5-flash';
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    const systemInstruction = "You are an expert UI developer. Create a deceptive, fraudulent UI popup based on the user's prompt. Use raw HTML, inline CSS, or Tailwind CSS classes. Return ONLY the raw HTML code without markdown formatting or markdown code blocks (e.g. no ```html). Make it look as realistic and deceiving as possible to simulate a real-world phishing or scam attack on a desktop screen. Ensure it is fully self-contained HTML that can be injected into a DOM.";
+
+    const payload = {
+      contents: [{ parts: [{ text: prompt }] }],
+      systemInstruction: { parts: [{ text: systemInstruction }] }
+    };
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(500).json({ error: `Gemini API Error: ${errText}` });
+    }
+
+    const data = await response.json();
+    let htmlCode = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    // Clean up potential markdown blocks from Gemini response
+    htmlCode = htmlCode.replace(/^```html\n/i, '').replace(/\n```$/i, '').trim();
+
+    res.json({ html: htmlCode });
+  } catch (error) {
+    logger.error('Error generating fraud UI:', error);
+    res.status(500).json({ error: 'Failed to generate UI' });
+  }
+});
+
 // Create HTTP server
 const server = http.createServer(app);
 

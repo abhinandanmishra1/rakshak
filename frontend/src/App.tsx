@@ -49,6 +49,11 @@ export default function App() {
   // Ref holders for background processing
   const socketRef = useRef<WebSocket | null>(null);
   const logContainerRef = useRef<HTMLDivElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // --- Screen Capture State ---
+  const [isScreenCapturing, setIsScreenCapturing] = useState(false);
 
   // --- Initial Mount Actions ---
   useEffect(() => {
@@ -138,6 +143,36 @@ export default function App() {
     window.speechSynthesis.speak(utterance);
   };
 
+  // --- Screen Capture Engine ---
+  const startScreenCapture = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        setIsScreenCapturing(true);
+        addTerminalLog('SYSTEM', 'Real screen capture started. Video stream active.');
+        
+        // Stop capture when user stops sharing via browser UI
+        stream.getVideoTracks()[0].onended = () => {
+          stopScreenCapture();
+        };
+      }
+    } catch (err) {
+      addTerminalLog('ERROR', `Failed to start screen capture: ${(err as Error).message}`);
+    }
+  };
+
+  const stopScreenCapture = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setIsScreenCapturing(false);
+    addTerminalLog('INFO', 'Screen capture stopped.');
+  };
+
   // --- Handlers ---
   const handleSocketMessage = (rawData: string) => {
     try {
@@ -190,10 +225,27 @@ Requires PIN: ${screen.requiresPin ? 'Yes' : 'No'}
 ${screen.message}
     `.trim();
 
+    let frameData = 'mock_base64_frame_data_omitted_for_demo';
+
+    // Grab real frame if capturing
+    if (isScreenCapturing && videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          frameData = canvas.toDataURL('image/jpeg', 0.7); // 70% quality JPEG
+        }
+      }
+    }
+
     targetSocket.send(JSON.stringify({
       type: 'screen_frame',
       textContext: textContext,
-      data: 'mock_base64_frame_data_omitted_for_demo'
+      data: frameData
     }));
   };
 
@@ -396,10 +448,21 @@ ${screen.message}
             <button 
               className={`btn-connect ${session.connected ? 'active' : 'inactive'}`}
               onClick={session.connected ? disconnectWebSocket : connectWebSocket}
+              style={{ marginBottom: '10px' }}
             >
               {session.connected ? '⏹ Close Live Session' : '▶️ Open Live Session'}
             </button>
+            <button 
+              className={`btn-connect ${isScreenCapturing ? 'active' : 'inactive'}`}
+              onClick={isScreenCapturing ? stopScreenCapture : startScreenCapture}
+            >
+              {isScreenCapturing ? '⏹ Stop Screen Capture' : '🖥️ Start Screen Capture'}
+            </button>
           </div>
+
+          {/* Hidden elements for capture */}
+          <video ref={videoRef} style={{ display: 'none' }} muted playsInline />
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
 
           <div className="glass-panel">
             <h3 className="glass-panel-title">Demo Flow Controller</h3>

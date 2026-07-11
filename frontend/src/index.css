@@ -27,29 +27,29 @@
   --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
   --font-sans: 'Inter', system-ui, sans-serif;
 
-  /* Theme Colors (Dark Cyber Theme) */
-  --bg-dark: #0a0b10;
-  --bg-surface: rgba(16, 18, 27, 0.7);
-  --bg-surface-hover: rgba(26, 29, 43, 0.85);
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-glow: rgba(0, 240, 255, 0.15);
+  /* Theme Colors (Light CSOC Theme) */
+  --bg-dark: #f8fafc;
+  --bg-surface: rgba(255, 255, 255, 0.85);
+  --bg-surface-hover: rgba(245, 247, 250, 0.95);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-glow: rgba(0, 114, 255, 0.15);
 
   /* Brand Accents */
-  --primary-glow: #00f0ff;
-  --primary-gradient: linear-gradient(135deg, #00f0ff 0%, #0072ff 100%);
-  --guardian-emerald: #00f5a0;
-  --guardian-gradient: linear-gradient(135deg, #00f5a0 0%, #00d2ff 100%);
-  --warning-crimson: #ff3366;
-  --warning-gradient: linear-gradient(135deg, #ff3366 0%, #ff003c 100%);
-  --warning-bg: rgba(255, 10, 50, 0.15);
-  --text-muted: #8a8f9d;
-  --text-light: #f5f6f9;
+  --primary-glow: #0072ff;
+  --primary-gradient: linear-gradient(135deg, #0072ff 0%, #00c6ff 100%);
+  --guardian-emerald: #10b981;
+  --guardian-gradient: linear-gradient(135deg, #10b981 0%, #047857 100%);
+  --warning-crimson: #ef4444;
+  --warning-gradient: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  --warning-bg: rgba(239, 68, 68, 0.1);
+  --text-muted: #64748b;
+  --text-light: #0f172a;
 
   /* Shadows */
-  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 20px rgba(0, 240, 255, 0.25);
-  --shadow-warning: 0 0 30px rgba(255, 51, 102, 0.4);
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 20px rgba(0, 114, 255, 0.15);
+  --shadow-warning: 0 0 30px rgba(239, 68, 68, 0.3);
 }
 
 /* ==========================================
@@ -64,9 +64,9 @@
 body {
   background-color: var(--bg-dark);
   background-image: 
-    radial-gradient(at 10% 20%, rgba(0, 240, 255, 0.04) 0px, transparent 50%),
-    radial-gradient(at 90% 80%, rgba(255, 51, 102, 0.03) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(0, 245, 160, 0.02) 0px, transparent 60%);
+    radial-gradient(at 10% 20%, rgba(0, 114, 255, 0.04) 0px, transparent 50%),
+    radial-gradient(at 90% 80%, rgba(239, 68, 68, 0.03) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(16, 185, 129, 0.02) 0px, transparent 60%);
   background-attachment: fixed;
   color: var(--text-light);
   font-family: var(--font-sans);
