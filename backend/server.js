@@ -207,7 +207,7 @@ function initGeminiConnection(clientWs, session) {
   session.geminiWs = new WebSocket(url);
   
   session.geminiWs.on('open', () => {
-    logger.info('Connected to Gemini Live API');
+    logger.info(`Connected to Gemini Live API. Configured Voice: "${session.voice || 'Aoede'}", Language: "${session.language || 'hi-IN'}"`);
     
     // Send Setup Message
     const setupMsg = {
@@ -229,6 +229,13 @@ function initGeminiConnection(clientWs, session) {
       }
     };
     session.geminiWs.send(JSON.stringify(setupMsg));
+
+    // Send confirmation back to the frontend client
+    clientWs.send(JSON.stringify({
+      type: 'setup_complete',
+      language: session.language,
+      voice: session.voice
+    }));
   });
 
   session.geminiWs.on('message', (data) => {

@@ -313,6 +313,13 @@ export default function App() {
         return;
       }
 
+      if (data.type === 'setup_complete') {
+        addTerminalLog('SYSTEM', `Gemini configuration active. Voice: ${data.voice}, Language: ${data.language}`);
+        lastSentFrameRef.current = '';
+        transmitScreenFrame();
+        return;
+      }
+
       if (data.type === 'audio_response') {
         playAudioChunk(data.data);
       }
@@ -455,9 +462,11 @@ export default function App() {
               localStorage.setItem('rakshak_voice', voice);
               setSession(s => ({ ...s, voice }));
               if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+                lastSentFrameRef.current = '';
                 socketRef.current.send(JSON.stringify({ type: 'setup_live_api', lang: session.language, voice }));
+              } else {
+                addTerminalLog('SYSTEM', `Voice configured to ${voice} (will apply on next connection)`);
               }
-              addTerminalLog('SYSTEM', `Voice changed to ${voice}`);
             }}
           >
             <option value="Aoede">Aoede (Soft Female)</option>
@@ -475,9 +484,11 @@ export default function App() {
               localStorage.setItem('rakshak_language', lang);
               setSession(s => ({ ...s, language: lang }));
               if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+                lastSentFrameRef.current = '';
                 socketRef.current.send(JSON.stringify({ type: 'setup_live_api', lang, voice: session.voice }));
+              } else {
+                addTerminalLog('SYSTEM', `Language configured to ${lang} (will apply on next connection)`);
               }
-              addTerminalLog('SYSTEM', `Language changed to ${lang}`);
             }}
           >
             <option value="hi-IN">Hindi</option>
