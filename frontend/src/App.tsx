@@ -179,6 +179,11 @@ export default function App() {
       
       const source = audioContextRef.current.createBufferSource();
       source.buffer = audioBuffer;
+      
+      // Speed up playback to make the guardian's response brisk and prompt (1.20x speed)
+      const speed = 1.20;
+      source.playbackRate.value = speed;
+      
       source.connect(audioContextRef.current.destination);
 
       const currentTime = audioContextRef.current.currentTime;
@@ -186,7 +191,7 @@ export default function App() {
           nextStartTimeRef.current = currentTime;
       }
       source.start(nextStartTimeRef.current);
-      nextStartTimeRef.current += audioBuffer.duration;
+      nextStartTimeRef.current += (audioBuffer.duration / speed);
     } catch(err) {
       addTerminalLog('ERROR', 'Audio playback failed');
     }
