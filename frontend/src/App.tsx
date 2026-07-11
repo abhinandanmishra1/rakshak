@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Radio, ShieldCheck, Volume2, Eye, ArrowRight, LayoutDashboard, Settings, FileText, ChevronRight } from 'lucide-react';
+import { Radio, ShieldCheck, Volume2, Eye, ArrowRight, LayoutDashboard, ChevronRight } from 'lucide-react';
 import { config } from './config.ts';
 
 interface LogEntry {
@@ -53,7 +53,6 @@ export default function App() {
   const [verdict, setVerdict] = useState<{ scam: boolean; reason: string; warning_hi: string; confidence?: number } | null>(null);
   const [terminalLogs, setTerminalLogs] = useState<LogEntry[]>([]);
   const [fraudLogs, setFraudLogs] = useState<FraudLog[]>([]);
-  const [ttsMissing, setTtsMissing] = useState<boolean>(true);
 
   // Ref holders for background processing
   const socketRef = useRef<WebSocket | null>(null);
@@ -86,14 +85,10 @@ export default function App() {
         const voices = window.speechSynthesis.getVoices();
         const hasHindi = voices.some(v => v.lang.includes('hi-IN'));
         if (!hasHindi) {
-          setTtsMissing(true);
           addTerminalLog('WARN', 'Hindi Speech Synthesis voice not found. PCM Audio stream fallback active.');
-        } else {
-          setTtsMissing(false);
         }
       }, 1000); // Give time for voices to load
     } else {
-      setTtsMissing(true);
       addTerminalLog('ERROR', 'Speech Synthesis API not supported on this browser.');
     }
   }, []);
@@ -642,75 +637,6 @@ export default function App() {
             <Eye size={18} />
             <span>Guardian View</span>
           </button>
-
-          <button 
-            className="sidebar-nav-btn"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              width: '100%',
-              padding: '0.85rem 1rem',
-              border: 'none',
-              borderRadius: '12px',
-              backgroundColor: 'transparent',
-              color: '#64748b',
-              fontFamily: 'var(--font-sans)',
-              fontWeight: 500,
-              fontSize: '0.95rem',
-              textAlign: 'left',
-              cursor: 'pointer'
-            }}
-          >
-            <Radio size={18} />
-            <span>Live Session</span>
-          </button>
-
-          <button 
-            className="sidebar-nav-btn"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              width: '100%',
-              padding: '0.85rem 1rem',
-              border: 'none',
-              borderRadius: '12px',
-              backgroundColor: 'transparent',
-              color: '#64748b',
-              fontFamily: 'var(--font-sans)',
-              fontWeight: 500,
-              fontSize: '0.95rem',
-              textAlign: 'left',
-              cursor: 'pointer'
-            }}
-          >
-            <FileText size={18} />
-            <span>Event Logs</span>
-          </button>
-
-          <button 
-            className="sidebar-nav-btn"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              width: '100%',
-              padding: '0.85rem 1rem',
-              border: 'none',
-              borderRadius: '12px',
-              backgroundColor: 'transparent',
-              color: '#64748b',
-              fontFamily: 'var(--font-sans)',
-              fontWeight: 500,
-              fontSize: '0.95rem',
-              textAlign: 'left',
-              cursor: 'pointer'
-            }}
-          >
-            <Settings size={18} />
-            <span>Settings</span>
-          </button>
         </nav>
 
         {/* System Status bottom card */}
@@ -769,29 +695,7 @@ export default function App() {
           flexWrap: 'wrap',
           flexShrink: 0
         }}>
-          {/* Warning Speech Synthesis Banner */}
-          {ttsMissing ? (
-            <div style={{
-              background: '#fef2f2',
-              border: '1px solid #fee2e2',
-              color: '#ef4444',
-              padding: '0.65rem 1.25rem',
-              borderRadius: '10px',
-              fontSize: '0.82rem',
-              fontWeight: 500,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              flexGrow: 1,
-              maxWidth: '750px',
-              boxShadow: '0 2px 8px rgba(239, 68, 68, 0.02)'
-            }}>
-              <span style={{ fontSize: '1rem' }}>⚠️</span>
-              <span>Warning: hi-IN (Hindi) Speech Synthesis voice not found on this browser. Voice warnings may be silent.</span>
-            </div>
-          ) : (
-            <div style={{ flexGrow: 1 }} />
-          )}
+          <div style={{ flexGrow: 1 }} />
 
           {/* Right Controls Dropdowns and Badge */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: 'auto' }}>
@@ -876,6 +780,16 @@ export default function App() {
                 <option value="en-US">English</option>
                 <option value="kn-IN">Kannada</option>
                 <option value="te-IN">Telugu</option>
+                <option value="ta-IN">Tamil</option>
+                <option value="bn-IN">Bengali</option>
+                <option value="mr-IN">Marathi</option>
+                <option value="gu-IN">Gujarati</option>
+                <option value="ml-IN">Malayalam</option>
+                <option value="pa-IN">Punjabi</option>
+                <option value="or-IN">Odia</option>
+                <option disabled style={{ fontWeight: 'bold', color: '#64748b' }}>
+                  — Supports all Indian Languages via Gemini —
+                </option>
               </select>
             </div>
 
