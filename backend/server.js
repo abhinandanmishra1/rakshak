@@ -200,8 +200,8 @@ function initGeminiConnection(clientWs, session) {
     return;
   }
 
-  // Use the specific Hackathon Track 1 model
-  const model = 'models/gemini-3.1-flash-live-preview';
+  // Use Gemini 2.0 Flash Exp for Live API
+  const model = 'models/gemini-2.0-flash-exp';
   const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
   
   session.geminiWs = new WebSocket(url);
@@ -255,7 +255,9 @@ function initGeminiConnection(clientWs, session) {
     }
   });
 
-  session.geminiWs.on('close', () => logger.info('Gemini WS closed'));
+  session.geminiWs.on('close', (code, reason) => {
+    logger.info(`Gemini WS closed. Code: ${code}, Reason: ${reason}`);
+  });
   session.geminiWs.on('error', (e) => logger.error('Gemini WS error:', e));
 }
 
