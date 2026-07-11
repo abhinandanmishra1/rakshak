@@ -7,8 +7,8 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Radio, StopCircle, MonitorPlay, MonitorStop } from 'lucide-react';
-import { config, UPIScreen } from './config.ts';
+import { StopCircle, MonitorPlay, MonitorStop } from 'lucide-react';
+import { config } from './config.ts';
 
 interface LogEntry {
   timestamp: string;
@@ -419,53 +419,7 @@ export default function App() {
     };
   }, [session.watching, isScreenCapturing]);
 
-  // --- Global Keyboard Demo Controller ---
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept if user is typing in inputs
-      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
 
-      const num = parseInt(e.key);
-      if (num >= 1 && num <= config.DEMO_SCREENS.length) {
-        changeSimulatedScreen(config.DEMO_SCREENS[num - 1]);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [changeSimulatedScreen]);
-
-  const simulateCustomScreen = () => {
-    if (!customScamText.trim()) return;
-    const customScreen: UPIScreen = {
-      id: 'custom_screen_' + Date.now(),
-      name: `Custom Screen: "${customPayeeName}"`,
-      category: 'scam',
-      senderName: customPayeeName,
-      handle: 'payee-' + Math.floor(Math.random() * 9000) + '@okaxis',
-      amount: 1500,
-      message: customScamText,
-      isCollectRequest: true,
-      requiresPin: true,
-      screenTitle: 'Custom Incoming Claim'
-    };
-    changeSimulatedScreen(customScreen);
-  };
-
-  const triggerMockScamUI = () => {
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type: 'mock_scam' }));
-    } else {
-      const mockVerdict = {
-        scam: true,
-        reason: 'This request asks for a UPI PIN while claiming money will be received.',
-        warning_hi: 'Ruko! Ye paisa lene ka nahi, dene ka request hai. PIN daalte hi aapke account se paise kat jaayenge. Ye scam hai.',
-        confidence: 92
-      };
-      setVerdict(mockVerdict);
-      setSession(s => ({ ...s, warningActive: true, conversationHistory: [...s.conversationHistory, mockVerdict.warning_hi] }));
-      playVoiceWarning(mockVerdict.warning_hi);
-    }
-  };
 
   const dismissOverlay = () => {
     setVerdict(null);
