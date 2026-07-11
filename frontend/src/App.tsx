@@ -256,11 +256,23 @@ ${screen.message}
     setSession(s => ({ ...s, currentScenario: screen.id, warningActive: false }));
     window.speechSynthesis.cancel();
     setCurrentScreen(screen);
+  }, []);
 
-    if (session.watching) {
-      transmitScreenFrame(screen);
+  // --- Frame Streaming Loop ---
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    
+    if (session.watching && isScreenCapturing) {
+      addTerminalLog('SYSTEM', 'Streaming live frames to AI core...');
+      intervalId = setInterval(() => {
+        transmitScreenFrame(currentScreen);
+      }, 3000); // Stream a frame every 3 seconds
     }
-  }, [session.watching]);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [session.watching, isScreenCapturing, currentScreen]);
 
   // --- Global Keyboard Demo Controller ---
   useEffect(() => {
