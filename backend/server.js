@@ -125,12 +125,17 @@ async function handleClientMessage(ws, rawMessage, session) {
         break;
 
       case 'screen_frame':
-        if (!session.geminiWs || session.geminiWs.readyState !== WebSocket.OPEN) return;
+        if (!session.geminiWs || session.geminiWs.readyState !== WebSocket.OPEN) {
+          logger.warn('Dropped screen_frame: Gemini Live API WebSocket is not OPEN.');
+          return;
+        }
         // Standard live streaming frame from frontend
         const base64Data = message.data; // should be stripped of the "data:image/jpeg;base64," prefix if present
         const cleanBase64 = base64Data.includes('base64,') 
           ? base64Data.split('base64,')[1] 
           : base64Data;
+        
+        logger.info(`[Transmission] Screen Frame received (${Math.round(cleanBase64.length / 1024)} KB) -> Forwarding to Gemini`);
         
         session.geminiWs.send(JSON.stringify({
           clientContent: {
@@ -147,7 +152,18 @@ async function handleClientMessage(ws, rawMessage, session) {
         break;
 
       case 'audio_chunk':
-        if (!session.geminiWs || session.geminiWs.readyState !== WebSocket.OPEN) return;
+        if (!session.geminiWs || session.geminiWs.readyState !== WebSocket.OPEN) {
+          logger.warn('Dropped audio_chunk: Gemini Live API WebSocket is not OPEN.');
+          return;
+        }
+        
+        // Log audio chunk transmission (only log every 15th chunk to prevent terminal flooding)
+        if (!session.audioLogCounter) session.audioLogCounter = 0;
+        session.audioLogCounter++;
+        if (session.audioLogCounter % 15 === 0) {
+          logger.info(`[Transmission] Audio Chunk received (${Math.round(message.data.length / 1024)} KB) -> Forwarding to Gemini`);
+        }
+
         session.geminiWs.send(JSON.stringify({
           realtimeInput: {
             audio: {

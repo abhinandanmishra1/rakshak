@@ -433,6 +433,9 @@ export default function App() {
     setSession(s => ({ ...s, warningActive: false }));
     window.speechSynthesis.cancel();
     isWarningActiveRef.current = false;
+    lastSentFrameRef.current = '';
+    // Immediately re-transmit the current frame to resume proactive monitoring
+    transmitScreenFrame();
   };
 
   return (
