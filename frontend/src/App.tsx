@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Radio, StopCircle, MonitorPlay, MonitorStop } from 'lucide-react';
 import { config, UPIScreen } from './config.ts';
 
 interface LogEntry {
@@ -450,13 +451,13 @@ ${screen.message}
               onClick={session.connected ? disconnectWebSocket : connectWebSocket}
               style={{ marginBottom: '10px' }}
             >
-              {session.connected ? '⏹ Close Live Session' : '▶️ Open Live Session'}
+              {session.connected ? <><StopCircle size={20} /> Close Live Session</> : <><Radio size={20} /> Open Live Session</>}
             </button>
             <button 
               className={`btn-connect ${isScreenCapturing ? 'active' : 'inactive'}`}
               onClick={isScreenCapturing ? stopScreenCapture : startScreenCapture}
             >
-              {isScreenCapturing ? '⏹ Stop Screen Capture' : '🖥️ Start Screen Capture'}
+              {isScreenCapturing ? <><MonitorStop size={20} /> Stop Screen Capture</> : <><MonitorPlay size={20} /> Start Screen Capture</>}
             </button>
           </div>
 
