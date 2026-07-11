@@ -326,11 +326,24 @@ export default function App() {
       }
 
       if (data.type === 'text_response') {
-        addTerminalLog('SYSTEM', `[Rakshak]: ${data.text}`);
-        setSession(s => ({ ...s, warningActive: true, conversationHistory: [...s.conversationHistory, data.text] }));
+        const text = data.text || '';
+        const isScamAlert = text.includes('[SCAM_ALERT]');
+        const cleanText = text.replace('[SCAM_ALERT]', '').trim();
         
-        // Show verdict overlay
-        setVerdict(prev => prev || { scam: true, reason: 'Live interaction warning.', confidence: 99, warning_hi: data.text });
+        addTerminalLog(isScamAlert ? 'WARN' : 'SYSTEM', `[Rakshak]: ${cleanText}`);
+        setSession(s => ({ 
+          ...s, 
+          warningActive: isScamAlert, 
+          conversationHistory: [...s.conversationHistory, cleanText] 
+        }));
+        
+        if (isScamAlert) {
+          // Show verdict overlay
+          setVerdict({ scam: true, reason: 'Live interaction warning.', confidence: 99, warning_hi: cleanText });
+        } else {
+          setVerdict(null);
+          isWarningActiveRef.current = false;
+        }
       }
 
       if (data.type === 'verdict') {
