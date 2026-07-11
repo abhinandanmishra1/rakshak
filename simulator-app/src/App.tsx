@@ -123,13 +123,13 @@ function App() {
           {/* Mode Toggle */}
           <div className="flex bg-gray-100 p-1 rounded-lg">
             <button 
-              className={\`px-4 py-2 text-sm font-medium rounded-md transition-all \${viewMode === 'static' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}\`}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${viewMode === 'static' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setViewMode('static')}
             >
               Static Presets
             </button>
             <button 
-              className={\`px-4 py-2 text-sm font-medium rounded-md transition-all \${viewMode === 'dynamic' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}\`}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${viewMode === 'dynamic' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setViewMode('dynamic')}
             >
               Dynamic (Gemini)
