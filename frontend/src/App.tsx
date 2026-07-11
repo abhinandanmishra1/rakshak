@@ -50,11 +50,8 @@ export default function App() {
     voice: defaultVoice
   });
 
-  const [currentScreen, setCurrentScreen] = useState<UPIScreen>(config.DEMO_SCREENS[0]);
   const [verdict, setVerdict] = useState<{ scam: boolean; reason: string; warning_hi: string; confidence?: number } | null>(null);
   
-  const [customScamText, setCustomScamText] = useState('');
-  const [customPayeeName, setCustomPayeeName] = useState('Unknown Sender');
   
   const [terminalLogs, setTerminalLogs] = useState<LogEntry[]>([]);
   const [ttsMissing, setTtsMissing] = useState(false);
@@ -196,7 +193,8 @@ export default function App() {
   };
 
   const playVoiceWarning = (text: string) => {
-    // Left as fallback, but Live API streams audio chunks directly.
+    // Disabled TTS fallback. We strictly rely on Gemini Live API's native PCM voice output.
+    /*
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
 
@@ -209,6 +207,7 @@ export default function App() {
     if (voice) utterance.voice = voice;
 
     window.speechSynthesis.speak(utterance);
+    */
   };
 
   const startMic = async () => {
@@ -367,23 +366,11 @@ export default function App() {
     }
   };
 
-  const transmitScreenFrame = (screen: UPIScreen, activeSocket: WebSocket | null = null) => {
+  const transmitScreenFrame = (activeSocket: WebSocket | null = null) => {
     const targetSocket = activeSocket || socketRef.current;
     if (!targetSocket || targetSocket.readyState !== WebSocket.OPEN) return;
 
-    const textContext = `
-[Screen Metadata]
-Title: ${screen.screenTitle}
-Payee Name: ${screen.senderName}
-Amount: ₹${screen.amount}
-Payment Type: ${screen.isCollectRequest ? 'Collect/Debit Request' : 'Direct Outgoing Transfer'}
-Requires PIN: ${screen.requiresPin ? 'Yes' : 'No'}
-
-[OCR Text]
-${screen.message}
-    `.trim();
-
-    let frameData = 'mock_base64_frame_data_omitted_for_demo';
+    let frameData = '';
 
     // Grab real frame if capturing
     if (isScreenCapturing && videoRef.current && canvasRef.current) {
@@ -400,34 +387,21 @@ ${screen.message}
       }
     }
 
-    // Deduplicate: Don't send if the frame and text context haven't changed since the last send
-    if (frameData === lastSentFrameRef.current && textContext === lastSentTextContextRef.current) {
+    if (!frameData) return;
+
+    // Deduplicate: Don't send if the frame hasn't changed since the last send
+    if (frameData === lastSentFrameRef.current) {
       return;
     }
 
     lastSentFrameRef.current = frameData;
-    lastSentTextContextRef.current = textContext;
 
     targetSocket.send(JSON.stringify({
       type: 'screen_frame',
-      textContext: textContext,
+      textContext: '', // Native Multimodal Gemini does not need text Context
       data: frameData
     }));
   };
-
-  const changeSimulatedScreen = useCallback((screen: UPIScreen) => {
-    addTerminalLog('INFO', `Switching to beat: ${screen.name}`);
-    setVerdict(null);
-    setSession(s => ({ ...s, currentScenario: screen.id, warningActive: false }));
-    window.speechSynthesis.cancel();
-    isWarningActiveRef.current = false;
-    
-    // Clear last sent tracking so it forces a fresh send immediately on change
-    lastSentFrameRef.current = '';
-    lastSentTextContextRef.current = '';
-    
-    setCurrentScreen(screen);
-  }, []);
 
   // --- Frame Streaming Loop ---
   useEffect(() => {
@@ -436,14 +410,14 @@ ${screen.message}
     if (session.watching && isScreenCapturing) {
       addTerminalLog('SYSTEM', 'Streaming live frames to AI core...');
       intervalId = setInterval(() => {
-        transmitScreenFrame(currentScreen);
+        transmitScreenFrame();
       }, 3000); // Stream a frame every 3 seconds
     }
 
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [session.watching, isScreenCapturing, currentScreen]);
+  }, [session.watching, isScreenCapturing]);
 
   // --- Global Keyboard Demo Controller ---
   useEffect(() => {
@@ -566,64 +540,26 @@ ${screen.message}
 
       {/* Main Grid Layout */}
       <main className="dashboard-grid">
-        {/* Left Column: Simulated Mobile Phone */}
-        <section className="phone-mockup">
-          <div className="phone-notch">
-            <div className="phone-camera"></div>
-            <div className="phone-speaker"></div>
+        {/* Left Column: Guardian View (Screen Capture) */}
+        <section className="guardian-view" style={{ background: '#1c1f2e', borderRadius: '16px', overflow: 'hidden', position: 'relative', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-muted)' }}>Guardian View</h3>
+            <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: isScreenCapturing ? 'var(--guardian-emerald)' : 'var(--warning-crimson)', borderRadius: '4px', color: '#fff', fontWeight: 600 }}>
+              {isScreenCapturing ? 'CAPTURING' : 'STANDBY'}
+            </span>
           </div>
-
-          <div className="phone-screen">
-            <div className="phone-screen-header">
-              <span className="phone-time">11:00 AM</span>
-              <span className="phone-battery">🔋 98%</span>
-            </div>
-
-            <div className="upi-app-body">
-              <div style={{ textAlign: 'center', margin: '0.5rem 0', padding: '0.25rem', background: '#252936', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary-glow)' }}>
-                {currentScreen.screenTitle.toUpperCase()}
+          <div style={{ flexGrow: 1, position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f111a' }}>
+            {/* The video element is moved here to be visible to the user */}
+            <video ref={videoRef} style={{ width: '100%', height: '100%', objectFit: 'contain', display: isScreenCapturing ? 'block' : 'none' }} muted playsInline />
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
+            
+            {!isScreenCapturing && (
+              <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                <MonitorPlay size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+                <p>Start Screen Capture to monitor device activity.</p>
               </div>
-
-              {currentScreen.id !== 'home' ? (
-                <>
-                  <div className={`upi-avatar-placeholder ${currentScreen.category === 'scam' ? 'upi-scam-avatar' : ''}`}>
-                    {currentScreen.senderName ? currentScreen.senderName[0] : '👤'}
-                  </div>
-                  <h3 className="upi-sender-title">{currentScreen.senderName || 'Anonymous'}</h3>
-                  <p className="upi-sender-handle">{currentScreen.handle || 'unknown-id@okaxis'}</p>
-
-                  <div className="upi-amount-card">
-                    <p className="upi-amount-label">Amount Requested</p>
-                    <p className="upi-amount-val">₹{currentScreen.amount.toLocaleString()}</p>
-                  </div>
-
-                  <div className={`upi-message-box ${currentScreen.category === 'legit' ? 'legit' : ''}`}>
-                    {currentScreen.message}
-                  </div>
-
-                  {currentScreen.requiresPin && (
-                    <div className="upi-pin-keyboard">
-                      <div style={{ textTransform: 'uppercase', color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 700, textAlign: 'center', marginBottom: '0.5rem' }}>
-                        🔒 Enter UPI PIN to Authenticate
-                      </div>
-                      <div className="keyboard-grid">
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'X', 0, '✓'].map((key) => (
-                          <div key={key} className="keyboard-key" onClick={() => addTerminalLog('INFO', `Key Pressed: ${key}`)}>
-                            {key}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'center', alignItems: 'center', padding: '1.5rem', textAlign: 'center' }}>
-                  <span style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>📱</span>
-                  <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>Simulator Screen</h4>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Use keyboard shortcuts 1, 2, 3, 4 to switch demo scenarios seamlessly.</p>
-                </div>
-              )}
-            </div>
+            )}
+          </div>
 
             {/* --- PREMIUM AI OVERLAY --- */}
             {session.warningActive && verdict && (
@@ -692,43 +628,6 @@ ${screen.message}
             </button>
           </div>
 
-          {/* Hidden elements for capture */}
-          <video ref={videoRef} style={{ display: 'none' }} muted playsInline />
-          <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-          <div className="glass-panel">
-            <h3 className="glass-panel-title">Demo Flow Controller</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Use keyboard shortcuts to seamlessly switch screens.</p>
-            <div className="beats-grid">
-              {config.DEMO_SCREENS.map((screen, idx) => (
-                <button
-                  key={screen.id}
-                  className={`btn-beat ${session.currentScenario === screen.id ? 'active' : ''}`}
-                  onClick={() => changeSimulatedScreen(screen)}
-                >
-                  <strong>[{idx + 1}] {screen.name.split(':')[0]}</strong>
-                  <br />
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{screen.name.split(':')[1] || ''}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="glass-panel">
-            <h3 className="glass-panel-title">Judge Test Bench</h3>
-            <div className="input-group">
-              <input type="text" className="textarea-custom" style={{ minHeight: '38px', padding: '0.4rem' }} value={customPayeeName} onChange={(e) => setCustomPayeeName(e.target.value)} />
-              <textarea className="textarea-custom" value={customScamText} onChange={(e) => setCustomScamText(e.target.value)} />
-              <button className="btn-classify" onClick={simulateCustomScreen}>Inject Custom Screen</button>
-            </div>
-          </div>
-
-          <div className="glass-panel">
-            <h3 className="glass-panel-title">UI Test Tools</h3>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button className="btn-beat" style={{ flex: 1, borderColor: 'rgba(255,50,50,0.15)' }} onClick={triggerMockScamUI}>🚨 UI: Mock Scam</button>
-              <button className="btn-beat" style={{ flex: 1, borderColor: 'rgba(50,255,100,0.15)' }} onClick={dismissOverlay}>🟢 UI: Reset</button>
-            </div>
           </div>
 
           <div className="glass-panel" style={{ flexGrow: 1 }}>
