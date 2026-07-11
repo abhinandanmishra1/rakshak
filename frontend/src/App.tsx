@@ -22,7 +22,7 @@
  * - Centralized configurations are fetched from the front-end config.ts.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { config, UPIScreen } from './config.ts';
 
 interface LogEntry {
