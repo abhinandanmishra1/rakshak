@@ -114,6 +114,22 @@ function error(message, err) {
 }
 
 /**
+ * Logs a warning message.
+ * 
+ * @function warn
+ * @param {string} message - The warning message.
+ * @param {...any} args - Optional extra arguments to output.
+ */
+function warn(message, ...args) {
+  const formatted = formatMessage('WARN', message);
+  if (args.length > 0) {
+    console.warn(formatted, ...args.map(arg => stripInlineData(arg)));
+  } else {
+    console.warn(formatted);
+  }
+}
+
+/**
  * Logs a function call and its parameters as INFO, conforming to guidelines.
  * 
  * @function logFunctionCall
@@ -154,6 +170,7 @@ function logGenAICall(model, prompt, config, output) {
 
 module.exports = {
   info,
+  warn,
   error,
   logFunctionCall,
   logGenAICall,

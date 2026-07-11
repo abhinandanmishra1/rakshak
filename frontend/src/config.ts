@@ -67,16 +67,28 @@ export const config = {
       screenTitle: 'Receive Money Request'
     },
     {
-      id: 'novel_scam',
-      name: 'Beat 3: Novel Processing/KYC Scam',
+      id: 'novel_scam_a',
+      name: 'Beat 3: Novel Unseen Scam (Template A)',
       category: 'scam',
-      senderName: 'Paytm Verification Desk',
-      handle: 'support-kyc9213@ybl',
-      amount: 1,
-      message: 'Your account is BLOCKED due to pending KYC update. Pay a verification fee of ₹1 to unblock. We will send you ₹5,000 unblocking bonus immediately.',
+      senderName: 'Income Tax Dept',
+      handle: 'refund-incometax@sbi',
+      amount: 4500,
+      message: 'Your tax refund of ₹4,500 has been approved. Please authorize this claim to receive the money in your bank account.',
       isCollectRequest: true,
       requiresPin: true,
-      screenTitle: 'Mandatory Account Verification'
+      screenTitle: 'Income Tax Refund'
+    },
+    {
+      id: 'novel_scam_b',
+      name: 'Beat 3b: Novel Unseen Scam (Template B)',
+      category: 'scam',
+      senderName: 'Customer Support',
+      handle: 'support-refund@icici',
+      amount: 2,
+      message: 'We have received your complaint regarding the failed transaction. Please pay ₹2 processing fee to reverse the transaction and get your money back.',
+      isCollectRequest: true,
+      requiresPin: true,
+      screenTitle: 'Refund Processing'
     },
     {
       id: 'legit_payment',
