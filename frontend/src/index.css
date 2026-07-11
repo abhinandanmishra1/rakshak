@@ -728,3 +728,113 @@ h1, h2, h3, h4, h5, h6 {
     transform: translateY(0px) scale(1);
   }
 }
+
+/* ==========================================
+   8. Fraud Logs Dashboard
+   ========================================== */
+.fraud-logs-container {
+  grid-column: 1 / -1;
+  background: var(--bg-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.fraud-logs-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--warning-crimson);
+  border-left: 4px solid var(--warning-crimson);
+  padding-left: 0.75rem;
+}
+
+.fraud-logs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.log-card {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 51, 102, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.log-card-header {
+  background: rgba(255, 51, 102, 0.15);
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgba(255, 51, 102, 0.2);
+}
+
+.log-timestamp {
+  color: var(--text-light);
+  font-weight: 600;
+}
+
+.log-confidence {
+  color: #ff5555;
+  font-weight: 700;
+}
+
+.log-card-body {
+  display: flex;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+.log-image-wrapper {
+  flex-shrink: 0;
+  width: 80px;
+  height: 140px;
+  background: #000;
+  border-radius: 8px;
+  border: 1px solid #333;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.log-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.log-thumbnail-placeholder {
+  color: #555;
+  font-size: 0.75rem;
+}
+
+.log-details {
+  flex-grow: 1;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.log-reason {
+  color: var(--text-light);
+}
+
+.log-warning {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-style: italic;
+  border-left: 2px solid #00f0ff;
+}

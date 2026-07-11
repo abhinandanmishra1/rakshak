@@ -16,6 +16,14 @@ interface LogEntry {
   message: string;
 }
 
+interface FraudLog {
+  timestamp: string;
+  reason: string;
+  confidence: number;
+  warning_hi: string;
+  base64Image: string;
+}
+
 interface SessionState {
   connected: boolean;
   watching: boolean;
@@ -46,12 +54,17 @@ export default function App() {
   
   const [terminalLogs, setTerminalLogs] = useState<LogEntry[]>([]);
   const [ttsMissing, setTtsMissing] = useState(false);
+  const [fraudLogs, setFraudLogs] = useState<FraudLog[]>([]);
 
   // Ref holders for background processing
   const socketRef = useRef<WebSocket | null>(null);
   const logContainerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  
+  // Tracking for debounce and capture
+  const isWarningActiveRef = useRef<boolean>(false);
+  const lastSentFrameRef = useRef<string>('');
 
   // --- Screen Capture State ---
   const [isScreenCapturing, setIsScreenCapturing] = useState(false);
@@ -197,12 +210,27 @@ export default function App() {
             confidence: Math.round(confidence * 100)
           });
           setSession(s => ({ ...s, warningActive: true, conversationHistory: [...s.conversationHistory, data.warning_hi] }));
-          playVoiceWarning(data.warning_hi);
+          
+          // Debounce TTS and capture log only if we are not already showing a warning
+          if (!isWarningActiveRef.current) {
+            isWarningActiveRef.current = true;
+            playVoiceWarning(data.warning_hi);
+            
+            // Capture fraud log with the last sent frame
+            setFraudLogs(prev => [{
+              timestamp: new Date().toLocaleTimeString(),
+              reason: data.reason,
+              confidence: Math.round(confidence * 100),
+              warning_hi: data.warning_hi,
+              base64Image: lastSentFrameRef.current
+            }, ...prev]);
+          }
         } else {
           addTerminalLog('INFO', `Screen SAFE: ${data.reason}`);
           setVerdict(null);
           setSession(s => ({ ...s, warningActive: false }));
           window.speechSynthesis.cancel();
+          isWarningActiveRef.current = false; // Reset debounce on safe screen
         }
       }
     } catch (err) {
@@ -243,6 +271,8 @@ ${screen.message}
       }
     }
 
+    lastSentFrameRef.current = frameData;
+
     targetSocket.send(JSON.stringify({
       type: 'screen_frame',
       textContext: textContext,
@@ -255,6 +285,7 @@ ${screen.message}
     setVerdict(null);
     setSession(s => ({ ...s, currentScenario: screen.id, warningActive: false }));
     window.speechSynthesis.cancel();
+    isWarningActiveRef.current = false;
     setCurrentScreen(screen);
   }, []);
 
@@ -326,6 +357,7 @@ ${screen.message}
     setVerdict(null);
     setSession(s => ({ ...s, warningActive: false }));
     window.speechSynthesis.cancel();
+    isWarningActiveRef.current = false;
   };
 
   return (
@@ -528,6 +560,36 @@ ${screen.message}
           </div>
         </section>
       </main>
+
+      {/* Fraud Detection Logs Dashboard */}
+      {fraudLogs.length > 0 && (
+        <section className="fraud-logs-container">
+          <h2 className="fraud-logs-title">Fraud Detection Logs</h2>
+          <div className="fraud-logs-grid">
+            {fraudLogs.map((log, index) => (
+              <div key={index} className="log-card">
+                <div className="log-card-header">
+                  <span className="log-timestamp">{log.timestamp}</span>
+                  <span className="log-confidence">{log.confidence}% Confidence</span>
+                </div>
+                <div className="log-card-body">
+                  <div className="log-image-wrapper">
+                    {log.base64Image && log.base64Image !== 'mock_base64_frame_data_omitted_for_demo' ? (
+                      <img src={log.base64Image} alt="Captured Screen" className="log-thumbnail" />
+                    ) : (
+                      <div className="log-thumbnail-placeholder">No Image</div>
+                    )}
+                  </div>
+                  <div className="log-details">
+                    <p className="log-reason"><strong>Reason:</strong> {log.reason}</p>
+                    <p className="log-warning"><strong>TTS:</strong> {log.warning_hi}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
