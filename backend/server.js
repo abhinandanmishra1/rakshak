@@ -200,8 +200,8 @@ function initGeminiConnection(clientWs, session) {
     return;
   }
 
-  // Use Gemini 2.5 Flash Native Audio for Live API
-  const model = 'models/gemini-2.5-flash-native-audio-latest';
+  // Use Gemini 3.1 Flash Live Preview for Live API (Hackathon Track)
+  const model = 'models/gemini-3.1-flash-live-preview';
   const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
   
   session.geminiWs = new WebSocket(url);
