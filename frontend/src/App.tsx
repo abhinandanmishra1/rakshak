@@ -598,7 +598,6 @@ export default function App() {
                 </div>
               </div>
             )}
-          </div>
         </section>
 
         {/* Right Column: Controls */}
@@ -626,8 +625,6 @@ export default function App() {
             >
               {isMicActive ? '🎤 Stop Microphone' : '🎤 Open Microphone'}
             </button>
-          </div>
-
           </div>
 
           <div className="glass-panel" style={{ flexGrow: 1 }}>
