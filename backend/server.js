@@ -233,12 +233,12 @@ function initGeminiConnection(clientWs, session) {
           parts: [{ text: config.SYSTEM_INSTRUCTION + `\n\nUser Language: ${session.language}` }]
         },
         generationConfig: {
-          responseModalities: ["AUDIO"]
-        },
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: {
-              voiceName: session.voice || "Kore"
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName: session.voice || "Kore"
+              }
             }
           }
         }
