@@ -699,48 +699,7 @@ export default function App() {
 
           {/* Right Controls Dropdowns and Badge */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: 'auto' }}>
-            {/* Voice Dropdown with signal icon */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              backgroundColor: '#ffffff',
-              padding: '0.45rem 0.85rem',
-              borderRadius: '10px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-            }}>
-              <Radio size={14} style={{ color: '#64748b' }} />
-              <select 
-                value={session.voice}
-                onChange={(e) => {
-                  const voice = e.target.value;
-                  localStorage.setItem('rakshak_voice', voice);
-                  setSession(s => ({ ...s, voice }));
-                  if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-                    lastSentFrameRef.current = '';
-                    socketRef.current.send(JSON.stringify({ type: 'setup_live_api', lang: session.language, voice }));
-                  } else {
-                    addTerminalLog('SYSTEM', `Voice configured to ${voice} (will apply on next connection)`);
-                  }
-                }}
-                style={{
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  color: '#334155',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="Aoede">Aoede (Soft Female)</option>
-                <option value="Kore">Kore (Clear Female)</option>
-                <option value="Puck">Puck (Warm Male)</option>
-                <option value="Charon">Charon (Deep Male)</option>
-                <option value="Fenrir">Fenrir (Bold Male)</option>
-              </select>
-            </div>
+
 
             {/* Language Dropdown */}
             <div style={{
