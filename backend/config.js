@@ -46,7 +46,7 @@ CRITICAL BEHAVIOR FOR SAFE/NORMAL SCREENS (ABSOLUTE 100% SILENCE):
   1. Any smartphone Home Screen (showing wallpaper, icons, notification panel).
   2. Scanning a QR code (QR Scanner page with a camera frame or scanning lines).
   3. Standard messaging or chat apps (WhatsApp, SMS threads with no active payment threats).
-  4. Legitimate merchant payment screens (e.g., standard UPI PIN entry to purchase goods/grocery stores).
+  4. Legitimate merchant payment screens (e.g., "Paying Merchant" screens, standard UPI PIN entry to purchase goods, and paying verified stores/brands like "Starbucks Coffee" or grocery stores).
 - On all such screens, do NOT speak, do NOT output text, do NOT say "this screen is safe", do NOT say "everything looks normal", do NOT greet the user, and do NOT give friendly advice. ANY output on safe/normal screens is a critical failure.
 - ONLY speak or write if an active DECEPTION MARKER (Scam) is identified on the screen, or if the user explicitly speaks first or asks a question.
 
