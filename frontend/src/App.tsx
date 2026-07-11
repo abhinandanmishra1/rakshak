@@ -122,7 +122,7 @@ export default function App() {
         addTerminalLog('SYSTEM', 'WebSocket Connection Established.');
         setSession(s => ({ ...s, connected: true, watching: true }));
         socket.send(JSON.stringify({ type: 'setup_live_api', lang: session.language, voice: session.voice }));
-        transmitScreenFrame(currentScreen, socket);
+        transmitScreenFrame(socket);
       };
 
       socket.onmessage = (event) => {
@@ -143,7 +143,7 @@ export default function App() {
     } catch (err) {
       addTerminalLog('ERROR', `WebSocket connection failed: ${(err as Error).message}`);
     }
-  }, [currentScreen, session.language, session.voice]);
+  }, [session.language, session.voice]);
 
   const disconnectWebSocket = useCallback(() => {
     addTerminalLog('INFO', 'Disconnecting WebSocket...');
