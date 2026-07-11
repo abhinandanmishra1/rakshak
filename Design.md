@@ -1,91 +1,86 @@
-# Rakshak — Design & Architecture Document
+# Rakshak — UI/UX Design System Specification
 
-Rakshak is a real-time, proactive on-screen guardian designed to protect UPI users (especially elderly, rural, and first-time users) from scams. It operates silently in the background, analyzing screen frames to detect intent-vs-action mismatches, and intervenes with visual overlays and spoken warnings (in Hindi) the instant a scam is detected.
-
----
-
-## 1. Architectural Overview
-
-The application is split into a **Frontend Client** (simulating a mobile device and UPI app) and a **Backend Proxy Server** (securing the Gemini API key and handling high-performance communication).
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Browser as Frontend (React App)
-    participant Server as Backend Proxy (Node.js)
-    participant Gemini as Gemini Live API / Vision
-
-    Browser->>Server: Open WebSocket connection
-    loop Every ~1 Second (on Screen Change)
-        Browser->>Browser: Capture simulated phone screen as JPEG (low-res, 1fps)
-        Browser->>Server: Send image frame (binary/base64)
-    end
-    Server->>Gemini: Stream frame to Live API
-    Gemini-->>Server: Real-time verdict (JSON classification)
-    Server-->>Browser: Relay verdict (scam: true/false, reason, language explanation)
-    alt Scam Detected
-        Browser->>Browser: Play spoken Hindi warning via TTS
-        Browser->>Browser: Render full-screen Red Pulsing Overlay + Subtitles
-    else Safe / Normal
-        Browser->>Browser: Remain completely silent
-    end
-```
+This document details the user interface (UI) design, visual layout, and user experience (UX) paradigms implemented across the Rakshak Proactive AI Intervention Engine.
 
 ---
 
-## 2. Coding and Documenting Guidelines
+## 1. Design Aesthetics & Visual Language
 
-To maintain code hygiene and satisfy all project constraints, we enforce the following guidelines across the entire codebase:
+Rakshak employs a specialized **Light Cyber Security Operations Center (CSOC)** theme. The theme rejects traditional dark, chaotic hacker-style green-on-black consoles in favor of a clean, premium, and trustworthy medical-grade enterprise safety aesthetic.
 
-* **File per Feature**: We split the codebase into single-purpose files rather than monolithic structures. For example, logging is in `logger.js`, config in `config.js`, and scam detection logic is isolated.
-* **Docstrings**: Every single function must have a clear, descriptive docstring explaining its input parameters, return values, and behavior.
-* **Header Comments**: Every file must start with a comprehensive, multi-line comment block explaining the feature, use cases, and design rationale in detail.
-* **Comprehensive Central Config**: All configuration parameters (ports, API endpoints, model names, frame rates) are grouped in centralized files (`config.js` for backend, `config.ts` for frontend).
-* **Logging Compliance**: 
-  * All function calls are logged as `INFO` with their arguments.
-  * All Gemini API inputs (model, prompt, config, frames) and outputs are logged in detail, while stripping out raw binary/inline frame data to keep logs clean and readable.
-* **Non-destructive Testing**: We provide dedicated test scripts (e.g., `test_gemini.js`) that mock screen states to test the classification rules without making modifying database/state calls.
+### 1.1. Color Palette
 
----
+The color strategy uses high contrast ratios to separate safe, monitoring, and warning states:
 
-## 3. Scam Detection Rules (System Prompt Logic)
-
-The core reasoning engine identifies a transaction as a scam based on the **intent-vs-action mismatch**:
-
-```
-                                  [ Screen Content Analysis ]
-                                               |
-                     +-------------------------+-------------------------+
-                     |                                                   |
-         [ User clearly intends to pay ]                 [ User was told they will RECEIVE ]
-                     |                                                   |
-         (e.g. scanned merchant QR,                      (e.g. "claim refund", "cashback",
-          split rent with contact)                        "prize won", "PIN to verify")
-                     |                                                   |
-                     v                                                   v
-               [ DEBIT OK ]                                        [ DEBIT WARNING ]
-                     |                                                   |
-                     v                                                   v
-                * SILENT *                                     * PROACTIVE WARNING *
-```
-
-### Detection Matrix
-
-| Scenario Type | User Action / Context | Screen State | Action |
+| CSS Color Variable | Hex Code | Visual Application | Emotional Intent |
 | :--- | :--- | :--- | :--- |
-| **Legit** | Scans QR, pays merchant | UPI PIN entry screen | **SILENT** |
-| **Legit** | Sends money to friend | UPI PIN entry screen | **SILENT** |
-| **Scam** | Told: "Enter PIN to receive refund" | UPI PIN entry, refund text | **WARN (Hindi)** |
-| **Scam** | Told: "Verify account with ₹1 payment" | Fake customer service text | **WARN (Hindi)** |
-| **Scam** | Unsolicited collect request from stranger | Urgent "pay now" button | **CLARIFY (Soft caution)** |
+| `--background-base` | `#f8fafc` | Main screen body background | Professionalism, cleanliness |
+| `--surface-card` | `#ffffff` | Elevation grids, cards, sidebars | Trust, transparency |
+| `--text-main` | `#0f172a` | Headers, active menu links, labels | High legibility, authority |
+| `--text-muted` | `#64748b` | Sub-captions, timestamps, disabled items | Secondary focus, low clutter |
+| `--guardian-emerald` | `#10b981` | Safe states, monitoring indicators | Calmness, security, protection |
+| `--primary-glow` | `#0072ff` | Connection active toggles, hover paths | Innovation, intelligence |
+| `--warning-crimson` | `#ef4444` | High-risk overlays, hazard icons | Urgency, immediate pause |
+
+### 1.2. Typography
+
+*   **Main Font Family**: Google Fonts' **Inter** or **Outfit** (`var(--font-sans)`).
+*   **Weights**:
+    *   `500` (Medium) for body copy.
+    *   `600` (Semi-bold) for navigation buttons and form labels.
+    *   `700` (Bold) for grid card headers.
+    *   `800` (Extra-bold) for brand headings and risk warnings.
 
 ---
 
-## 4. The 4 Demo Beats
+## 2. Layout Structure & Navigation Grid
 
-The application will be validated using an interactive interface representing these four beats:
+The workspace is organized into a split viewport that balances persistent system monitoring on the left and interactive content/controls on the right.
 
-1. **Beat 1 (Normal Chat/Home)**: No payment context. Rakshak remains completely silent.
-2. **Beat 2 (Classic UPI Scam)**: A fake "receive money" screen asks the user to enter their PIN. Rakshak interrupts instantly in Hindi, explaining that "PIN is only for sending money, never receiving."
-3. **Beat 3 (Novel Scam Wording)**: A customized, unseen scam scenario (e.g., "Verification fee for a lottery prize"). Rakshak's zero-shot reasoning detects the deception and warns the user.
-4. **Beat 4 (Legit payment)**: The user initiates a transfer to a landlord or scans a store QR. Rakshak remains quiet, avoiding false-positive fatigue.
+### 2.1. Left Sticky Sidebar (`280px`)
+
+The left sidebar is persistent, providing immediate brand recognition and passive status verification:
+1.  **Brand Identity Section**: Combines a bold shield icon (`🛡️`) with the `Rakshak` title and sub-tagline `PROACTIVE AI GUARDIAN`.
+2.  **Navigation Links**: Clean, icon-prefix buttons with transition slides when hovered.
+3.  **Passive Status Indicator**: A light grey-surface card nested at the bottom:
+    *   Displays a green checkmark (`✓`) with the status `STANDBY`.
+    *   Hosts an active, animated **Audio-Wave Sparkline** (simulated via CSS `@keyframes` on varying height bars) to reassure users that the cognitive shield is actively listening and reasoning in the background.
+
+### 2.2. Main Control Workspace (Right Column Grid)
+
+The right panel is highly organized, using responsive CSS grid templates (`grid-template-columns: 1.2fr 1fr`):
+*   **Header Bar**: Displayed at the very top with light drop-shadows. Provides quick-access language controls and active stream status indicators.
+*   **Guardian View Card (Left Column)**: The focal point of visual evidence. Displays the active screen-capture stream. When inactive, it presents a double-radial-pulsing shield illustration to encourage the user to engage screen capture.
+*   **Live Session Manager Card (Right Column Top)**: Organizes actions into high-end vertical row buttons rather than plain form fields. Includes interactive connection rows, screen tracking toggles, and microphone shield overrides.
+*   **Console Event Streams Card (Right Column Bottom)**: A dark-surface (`#0f172a`) developer-facing cybersecurity console showing real-time event logs with distinct coloration for `SYSTEM`, `INFO`, and `WARN` events.
+*   **Intervention Logs Card (Full-Width Bottom)**: Dynamic responsive card grid displaying historical threats complete with visual screen captures and verbal dialog outputs.
+
+---
+
+## 3. High-Confidence Intervention Overlay UX
+
+The **AI Intervention Overlay** is a critical, high-impact modal that interrupts unsafe user behavior immediately:
+
+```
++-------------------------------------------------------------+
+|                                                             |
+|                       ⚠️ WARNING                             |
+|             Unsafe Interaction Detected                     |
+|                                                             |
+|   Intervention Analysis:                                    |
+|   "User is trying to enter their UPI PIN to receive money."  |
+|                                                             |
+|   [======================== 95% Confidence ===============] |
+|                                                             |
+|   Verbal Dialog Shield:                                     |
+|   (🔊 Audio warning looping in Hindi / English)              |
+|                                                             |
+|                     [ Resume Protection ]                   |
+|                                                             |
++-------------------------------------------------------------+
+```
+
+### 3.1. Visual & Audio Staging
+*   **Pulse Interruption**: Uses an absolute crimson translucent wrapper with high blur (`backdrop-filter: blur(8px)`) that instantly grabs the user's attention.
+*   **Confidence Meter**: Includes a linear horizontal progress bar displaying the exact confidence score (e.g., `95%`) calculated by Gemini, increasing the user's trust in the engine's warning.
+*   **Dialogue Waves**: Displays an active, animated equalizer wave adjacent to the Hindi warning subtitles, indicating that vocal alerts are currently playing back from their speakers.
