@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { StopCircle, MonitorPlay, MonitorStop } from 'lucide-react';
+import { Radio, StopCircle, MonitorPlay, MonitorStop } from 'lucide-react';
 import { config } from './config.ts';
 
 interface LogEntry {
