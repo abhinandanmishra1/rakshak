@@ -322,7 +322,11 @@ export default function App() {
       }
 
       if (data.type === 'audio_response') {
-        playAudioChunk(data.data);
+        if (isWarningActiveRef.current) {
+          playAudioChunk(data.data);
+        } else {
+          console.log('[Rakshak] Suppressed nominal or startup audio response while safe');
+        }
       }
 
       if (data.type === 'text_response') {
@@ -330,6 +334,9 @@ export default function App() {
         const isScamAlert = text.includes('[SCAM_ALERT]');
         const cleanText = text.replace('[SCAM_ALERT]', '').trim();
         
+        // Track whether active warning is true on text stream
+        isWarningActiveRef.current = isScamAlert;
+
         addTerminalLog(isScamAlert ? 'WARN' : 'SYSTEM', `[Rakshak]: ${cleanText}`);
         setSession(s => ({ 
           ...s, 
@@ -342,7 +349,6 @@ export default function App() {
           setVerdict({ scam: true, reason: 'Live interaction warning.', confidence: 99, warning_hi: cleanText });
         } else {
           setVerdict(null);
-          isWarningActiveRef.current = false;
         }
       }
 
