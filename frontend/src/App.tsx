@@ -38,7 +38,7 @@ interface SessionState {
 export default function App() {
   // --- UI and Session State ---
   const defaultLang = localStorage.getItem('rakshak_language') || 'hi-IN';
-  const defaultVoice = localStorage.getItem('rakshak_voice') || 'Aoede';
+  const defaultVoice = localStorage.getItem('rakshak_voice') || 'Kore';
   const [session, setSession] = useState<SessionState>({
     connected: false,
     watching: false,

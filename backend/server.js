@@ -118,9 +118,9 @@ async function handleClientMessage(ws, rawMessage, session) {
 
       case 'setup_language':
       case 'setup_live_api':
-        logger.info(`Setting up Gemini WS for language: ${message.lang}, voice: ${message.voice || 'Aoede'}`);
+        logger.info(`Setting up Gemini WS for language: ${message.lang}, voice: ${message.voice || 'Kore'}`);
         session.language = message.lang || session.language;
-        session.voice = message.voice || session.voice || 'Aoede';
+        session.voice = message.voice || session.voice || 'Kore';
         initGeminiConnection(ws, session);
         break;
 
@@ -223,7 +223,7 @@ function initGeminiConnection(clientWs, session) {
   session.geminiWs = new WebSocket(url);
   
   session.geminiWs.on('open', () => {
-    logger.info(`Connected to Gemini Live API. Configured Voice: "${session.voice || 'Aoede'}", Language: "${session.language || 'hi-IN'}"`);
+    logger.info(`Connected to Gemini Live API. Configured Voice: "${session.voice || 'Kore'}", Language: "${session.language || 'hi-IN'}"`);
     
     // Send Setup Message
     const setupMsg = {
@@ -238,7 +238,7 @@ function initGeminiConnection(clientWs, session) {
         speechConfig: {
           voiceConfig: {
             prebuiltVoiceConfig: {
-              voiceName: session.voice || "Aoede"
+              voiceName: session.voice || "Kore"
             }
           }
         }
@@ -293,7 +293,7 @@ wss.on('connection', (ws, req) => {
   // Session state per client
   const session = {
     language: 'hi-IN',
-    voice: 'Aoede',
+    voice: 'Kore',
     geminiWs: null
   };
 
