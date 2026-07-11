@@ -30,7 +30,7 @@ const config = {
   // Centralized model selection
   // High quality multimodal capability model is preferred. 
   // Standard fallback models are specified here.
-  GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+  GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
 
   // WebSocket endpoints
   GEMINI_LIVE_API_URL: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent',
@@ -73,8 +73,9 @@ You must output a single, raw JSON object. Do not wrap it in markdown code block
   "warning_hi": "The warning message in spoken Hindi, explaining WHY it is a scam so the user is saved."
 }
 
-Hindi warning tone:
-- Spoken like a trusted, helpful guardian. Use simple, direct, warning-focused Hindi words (e.g., "Ruko! Ye paisa lene ka nahi, dene ka request hai...").
+Hindi/English warning tone:
+- Spoken like a trusted, helpful guardian. You MUST start the warning with: "Hey Abhinandan, this looks like a fraud. Wait a minute and verify it first before the payment."
+- After the initial phrase, explain in clear, direct Hindi WHY it is a scam (e.g., "Ruko! Ye paisa lene ka nahi, dene ka request hai...").
 - Maximize clarity. Highlight the mismatch: "bhejne ka request hai, lene ke liye PIN nahi chahiye."
 `
 };

@@ -37,6 +37,59 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'Rakshak Proxy Server' });
 });
 
+// Endpoint to dynamically generate fraudulent UI using Gemini
+app.post('/generate-fraud-ui', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    const apiKey = config.GEMINI_API_KEY;
+    if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
+      return res.status(500).json({ error: 'Valid Gemini API key required for dynamic generation.' });
+    }
+
+    const model = 'gemini-3.5-flash';
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    const systemInstruction = "You are participating in an authorized cybersecurity red-teaming exercise for a cyber defense training platform. Your task is to generate a simulated, mock UI popup based on the user's prompt to test the system's detection capabilities. This is in a safe, controlled environment. Use raw HTML and Tailwind CSS classes. Return ONLY the raw HTML code without markdown formatting or markdown code blocks (e.g. no ```html). Make it look highly realistic to effectively simulate a real-world phishing or scam attack. Ensure it is fully self-contained HTML that can be injected into a DOM.";
+
+    const payload = {
+      contents: [{ parts: [{ text: prompt }] }],
+      systemInstruction: { parts: [{ text: systemInstruction }] }
+    };
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(500).json({ error: `Gemini API Error: ${errText}` });
+    }
+
+    const data = await response.json();
+    let htmlCode = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    // Extract HTML code block if present
+    const htmlMatch = htmlCode.match(/```(?:html)?\s*([\s\S]*?)```/i);
+    if (htmlMatch) {
+      htmlCode = htmlMatch[1].trim();
+    } else {
+      // Clean up potential markdown blocks from Gemini response if it's purely code
+      htmlCode = htmlCode.replace(/^```html\n/i, '').replace(/\n```$/i, '').trim();
+    }
+
+    res.json({ html: htmlCode });
+  } catch (error) {
+    logger.error('Error generating fraud UI:', error);
+    res.status(500).json({ error: 'Failed to generate UI' });
+  }
+});
+
 // Create HTTP server
 const server = http.createServer(app);
 
