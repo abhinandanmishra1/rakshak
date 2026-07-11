@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Radio, StopCircle, MonitorPlay, MonitorStop } from 'lucide-react';
+import { Radio, StopCircle, MonitorPlay, MonitorStop, ShieldCheck, Volume2, Eye, ArrowRight, Home, Terminal } from 'lucide-react';
 import { config } from './config.ts';
 
 interface LogEntry {
@@ -53,6 +53,7 @@ export default function App() {
   const [verdict, setVerdict] = useState<{ scam: boolean; reason: string; warning_hi: string; confidence?: number } | null>(null);
   
   
+  const [activeTab, setActiveTab] = useState<'landing' | 'console'>('landing');
   const [terminalLogs, setTerminalLogs] = useState<LogEntry[]>([]);
   const [ttsMissing, setTtsMissing] = useState(false);
   const [fraudLogs, setFraudLogs] = useState<FraudLog[]>([]);
@@ -81,7 +82,7 @@ export default function App() {
 
   // --- Initial Mount Actions ---
   useEffect(() => {
-    addTerminalLog('SYSTEM', 'Rakshak React Interface Initialized. Waiting for Guardian Activation...');
+    addTerminalLog('SYSTEM', 'Rakshak AI Intervention Console Initialized. Waiting for Shield Activation...');
     
     // Check for TTS Engine
     if ('speechSynthesis' in window) {
@@ -457,10 +458,18 @@ export default function App() {
           <span className="brand-icon">🛡️</span>
           <div className="brand-title-wrap">
             <h1>Rakshak</h1>
-            <p>Proactive AI Guardian</p>
+            <p>AI Intervention Engine</p>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="nav-tabs">
+            <button className={`nav-tab-btn ${activeTab === 'landing' ? 'active' : ''}`} onClick={() => setActiveTab('landing')}>
+              <Home size={16} /> Home
+            </button>
+            <button className={`nav-tab-btn ${activeTab === 'console' ? 'active' : ''}`} onClick={() => setActiveTab('console')}>
+              <Terminal size={16} /> AI Intervention Console
+            </button>
+          </div>
           <select 
             className="textarea-custom" 
             style={{ padding: '0.2rem 0.5rem', minHeight: 'auto', backgroundColor: '#252936', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
@@ -505,146 +514,204 @@ export default function App() {
             <option value="te-IN">Telugu</option>
           </select>
           <span style={{ fontSize: '0.85rem', color: session.connected ? 'var(--guardian-emerald)' : 'var(--text-muted)' }}>
-            ● {session.connected ? 'LIVE SESSION ACTIVE' : 'OFFLINE'}
+            ● {session.connected ? 'LIVE INTERVENTION ACTIVE' : 'OFFLINE'}
           </span>
-          {session.watching && <span style={{ fontSize: '0.85rem', color: 'var(--primary-glow)', animation: 'pulse 1.5s infinite' }}>👁️ WATCHING</span>}
+          {session.watching && <span style={{ fontSize: '0.85rem', color: 'var(--primary-glow)', animation: 'pulse 1.5s infinite' }}>👁️ MONITORING USER INTERACTIONS</span>}
         </div>
       </header>
 
-      {/* Main Grid Layout */}
-      <main className="dashboard-grid">
-        {/* Left Column: Guardian View (Screen Capture) */}
-        <section className="guardian-view" style={{ background: '#1c1f2e', borderRadius: '16px', overflow: 'hidden', position: 'relative', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-muted)' }}>Guardian View</h3>
-            <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: isScreenCapturing ? 'var(--guardian-emerald)' : 'var(--warning-crimson)', borderRadius: '4px', color: '#fff', fontWeight: 600 }}>
-              {isScreenCapturing ? 'CAPTURING' : 'STANDBY'}
-            </span>
-          </div>
-          <div style={{ flexGrow: 1, position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f111a' }}>
-            {/* The video element is moved here to be visible to the user */}
-            <video ref={videoRef} style={{ width: '100%', height: '100%', objectFit: 'contain', display: isScreenCapturing ? 'block' : 'none' }} muted playsInline />
-            <canvas ref={canvasRef} style={{ display: 'none' }} />
-            
-            {!isScreenCapturing && (
-              <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                <MonitorPlay size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
-                <p>Start Screen Capture to monitor device activity.</p>
+      {activeTab === 'landing' ? (
+        <div className="landing-container">
+          <section className="landing-hero">
+            <span className="landing-badge">Real-Time Cognitive Safety</span>
+            <h2>Proactive AI Intervention Engine</h2>
+            <p>
+              Rakshak is an advanced cognitive safety companion. By continuously analyzing device screens and audio feeds, Rakshak pre-emptively intervenes <em>before</em> you complete any unsafe transaction, protectively guarding against all forms of digital deception.
+            </p>
+            <button className="btn-launch-console" onClick={() => setActiveTab('console')}>
+              Access AI Intervention Console <ArrowRight size={18} />
+            </button>
+          </section>
+
+          <section className="landing-features-grid">
+            <div className="landing-feature-card">
+              <div className="landing-feature-icon-wrapper blue">
+                <Eye size={24} />
               </div>
-            )}
-          </div>
-
-            {/* --- PREMIUM AI OVERLAY --- */}
-            {session.warningActive && verdict && (
-              <div className="ai-overlay">
-                <div className="ai-overlay-card">
-                  <div className="ai-overlay-header">
-                    <span className="ai-warning-icon">⚠️</span>
-                    <h2 className="ai-overlay-title">Potential Unsafe Transaction</h2>
-                  </div>
-                  
-                  <div className="ai-overlay-reason">
-                    <strong>Reason:</strong><br/>
-                    {verdict.reason}
-                  </div>
-
-                  <div className="ai-confidence-meter">
-                    <span>Confidence Score</span>
-                    <span>{verdict.confidence || 90}%</span>
-                  </div>
-                  <div className="ai-confidence-bar">
-                    <div className="ai-confidence-fill" style={{ width: `${verdict.confidence || 90}%` }}></div>
-                  </div>
-
-                  {/* Conversation UX */}
-                  <div className="ai-waveform">
-                    <div className="ai-wave-bar"></div><div className="ai-wave-bar"></div>
-                    <div className="ai-wave-bar"></div><div className="ai-wave-bar"></div><div className="ai-wave-bar"></div>
-                  </div>
-                  <div className="ai-transcript typing-effect">
-                    {verdict.warning_hi}
-                  </div>
-
-                  <button className="ai-overlay-dismiss" onClick={dismissOverlay}>
-                    [ Dismiss ]
-                  </button>
-                </div>
-              </div>
-            )}
-        </section>
-
-        {/* Right Column: Controls */}
-        <section className="controls-column">
-          <div className="glass-panel">
-            <h3 className="glass-panel-title">Live Session Manager</h3>
-            <button 
-              className={`btn-connect ${session.connected ? 'active' : 'inactive'}`}
-              onClick={session.connected ? disconnectWebSocket : connectWebSocket}
-              style={{ marginBottom: '10px' }}
-            >
-              {session.connected ? <><StopCircle size={20} /> Close Live Session</> : <><Radio size={20} /> Open Live Session</>}
-            </button>
-            <button 
-              className={`btn-connect ${isScreenCapturing ? 'active' : 'inactive'}`}
-              onClick={isScreenCapturing ? stopScreenCapture : startScreenCapture}
-              style={{ marginBottom: '10px' }}
-            >
-              {isScreenCapturing ? <><MonitorStop size={20} /> Stop Screen Capture</> : <><MonitorPlay size={20} /> Start Screen Capture</>}
-            </button>
-            <button 
-              className={`btn-connect ${isMicActive ? 'active' : 'inactive'}`}
-              onClick={isMicActive ? stopMic : startMic}
-              style={{ borderColor: isMicActive ? 'var(--guardian-emerald)' : 'rgba(255,255,255,0.1)' }}
-            >
-              {isMicActive ? '🎤 Stop Microphone' : '🎤 Open Microphone'}
-            </button>
-          </div>
-
-          <div className="glass-panel" style={{ flexGrow: 1 }}>
-            <h3 className="glass-panel-title" style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Event Logs</span>
-              <span style={{ cursor: 'pointer', padding: '2px 6px' }} onClick={() => setTerminalLogs([])}>Clear</span>
-            </h3>
-            <div className="terminal-console" ref={logContainerRef}>
-              {terminalLogs.map((log, index) => (
-                <div key={index} className="terminal-line">
-                  <span className="terminal-line-timestamp">[{log.timestamp}]</span>
-                  <span className={`terminal-line-${log.level.toLowerCase()}`}>[{log.level}] {log.message}</span>
-                </div>
-              ))}
+              <h3>Continuous Interaction Sight</h3>
+              <p>
+                Streams real-time visual screen frames directly to Gemini's multimodal core to analyze design context, uncover hidden deceptions, and detect social engineering.
+              </p>
             </div>
-          </div>
-        </section>
-      </main>
 
-      {/* Fraud Detection Logs Dashboard */}
-      {fraudLogs.length > 0 && (
-        <section className="fraud-logs-container">
-          <h2 className="fraud-logs-title">Fraud Detection Logs</h2>
-          <div className="fraud-logs-grid">
-            {fraudLogs.map((log, index) => (
-              <div key={index} className="log-card">
-                <div className="log-card-header">
-                  <span className="log-timestamp">{log.timestamp}</span>
-                  <span className="log-confidence">{log.confidence}% Confidence</span>
+            <div className="landing-feature-card">
+              <div className="landing-feature-icon-wrapper green">
+                <Volume2 size={24} />
+              </div>
+              <h3>Bilingual Verbal Shield</h3>
+              <p>
+                Pipes native high-speed verbal notifications and natural dialogue directly to your speakers to instantly interrupt unsafe choices in your preferred local language.
+              </p>
+            </div>
+
+            <div className="landing-feature-card">
+              <div className="landing-feature-icon-wrapper purple">
+                <ShieldCheck size={24} />
+              </div>
+              <h3>Cognitive Safety Hub</h3>
+              <p>
+                A unified core that reasons across multiple scenarios. Guards against UPI PIN fraud, deceptive refunds, phone support traps, and phishing.
+              </p>
+            </div>
+          </section>
+
+          <section className="landing-cta-card">
+            <h3>Start Your Cognitive Protection</h3>
+            <p>
+              Open a live session to experience real-time AI security. Share your screen, start the live audio shield, and enjoy immediate assistance across all active apps.
+            </p>
+            <button className="btn-launch-console" onClick={() => setActiveTab('console')}>
+              Launch AI Intervention Console <ArrowRight size={18} />
+            </button>
+          </section>
+        </div>
+      ) : (
+        <>
+          {/* Main Grid Layout */}
+          <main className="dashboard-grid">
+            {/* Left Column: Intervention View (Screen Capture) */}
+            <section className="guardian-view" style={{ background: '#1c1f2e', borderRadius: '16px', overflow: 'hidden', position: 'relative', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-muted)' }}>Intervention Sight</h3>
+                <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: isScreenCapturing ? 'var(--guardian-emerald)' : 'var(--warning-crimson)', borderRadius: '4px', color: '#fff', fontWeight: 600 }}>
+                  {isScreenCapturing ? 'MONITORING' : 'STANDBY'}
+                </span>
+              </div>
+              <div style={{ flexGrow: 1, position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f111a' }}>
+                <video ref={videoRef} style={{ width: '100%', height: '100%', objectFit: 'contain', display: isScreenCapturing ? 'block' : 'none' }} muted playsInline />
+                <canvas ref={canvasRef} style={{ display: 'none' }} />
+                
+                {!isScreenCapturing && (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <MonitorPlay size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+                    <p>Start Screen Capture to monitor user interactions.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* --- PREMIUM AI OVERLAY --- */}
+              {session.warningActive && verdict && (
+                <div className="ai-overlay">
+                  <div className="ai-overlay-card">
+                    <div className="ai-overlay-header">
+                      <span className="ai-warning-icon">⚠️</span>
+                      <h2 className="ai-overlay-title">Unsafe Interaction Detected</h2>
+                    </div>
+                    
+                    <div className="ai-overlay-reason">
+                      <strong>Intervention Analysis:</strong><br/>
+                      {verdict.reason}
+                    </div>
+
+                    <div className="ai-confidence-meter">
+                      <span>Intervention Decision Confidence</span>
+                      <span>{verdict.confidence || 90}%</span>
+                    </div>
+                    <div className="ai-confidence-bar">
+                      <div className="ai-confidence-fill" style={{ width: `${verdict.confidence || 90}%` }}></div>
+                    </div>
+
+                    {/* Conversation UX */}
+                    <div className="ai-waveform">
+                      <div className="ai-wave-bar"></div><div className="ai-wave-bar"></div>
+                      <div className="ai-wave-bar"></div><div className="ai-wave-bar"></div><div className="ai-wave-bar"></div>
+                    </div>
+                    <div className="ai-transcript typing-effect">
+                      {verdict.warning_hi}
+                    </div>
+
+                    <button className="ai-overlay-dismiss" onClick={dismissOverlay}>
+                      [ Resume Protection ]
+                    </button>
+                  </div>
                 </div>
-                <div className="log-card-body">
-                  <div className="log-image-wrapper">
-                    {log.base64Image && log.base64Image !== 'mock_base64_frame_data_omitted_for_demo' ? (
-                      <img src={log.base64Image} alt="Captured Screen" className="log-thumbnail" />
-                    ) : (
-                      <div className="log-thumbnail-placeholder">No Image</div>
-                    )}
-                  </div>
-                  <div className="log-details">
-                    <p className="log-reason"><strong>Reason:</strong> {log.reason}</p>
-                    <p className="log-warning"><strong>TTS:</strong> {log.warning_hi}</p>
-                  </div>
+              )}
+            </section>
+
+            {/* Right Column: Controls */}
+            <section className="controls-column">
+              <div className="glass-panel">
+                <h3 className="glass-panel-title">Live Session Manager</h3>
+                <button 
+                  className={`btn-connect ${session.connected ? 'active' : 'inactive'}`}
+                  onClick={session.connected ? disconnectWebSocket : connectWebSocket}
+                  style={{ marginBottom: '10px' }}
+                >
+                  {session.connected ? <><StopCircle size={20} /> Close Live Session</> : <><Radio size={20} /> Open Live Session</>}
+                </button>
+                <button 
+                  className={`btn-connect ${isScreenCapturing ? 'active' : 'inactive'}`}
+                  onClick={isScreenCapturing ? stopScreenCapture : startScreenCapture}
+                  style={{ marginBottom: '10px' }}
+                >
+                  {isScreenCapturing ? <><MonitorStop size={20} /> Stop Screen Capture</> : <><MonitorPlay size={20} /> Start Screen Capture</>}
+                </button>
+                <button 
+                  className={`btn-connect ${isMicActive ? 'active' : 'inactive'}`}
+                  onClick={isMicActive ? stopMic : startMic}
+                  style={{ borderColor: isMicActive ? 'var(--guardian-emerald)' : 'rgba(255,255,255,0.1)' }}
+                >
+                  {isMicActive ? '🎤 Mute Verbal Shield' : '🎤 Open Microphone'}
+                </button>
+              </div>
+
+              <div className="glass-panel" style={{ flexGrow: 1 }}>
+                <h3 className="glass-panel-title" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Console Event Streams</span>
+                  <span style={{ cursor: 'pointer', padding: '2px 6px', fontSize: '0.8rem', opacity: 0.6 }} onClick={() => setTerminalLogs([])}>Clear</span>
+                </h3>
+                <div className="terminal-console" ref={logContainerRef}>
+                  {terminalLogs.map((log, index) => (
+                    <div key={index} className="terminal-line">
+                      <span className="terminal-line-timestamp">[{log.timestamp}]</span>
+                      <span className={`terminal-line-${log.level.toLowerCase()}`}>[{log.level}] {log.message}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
+            </section>
+          </main>
+
+          {/* AI Intervention Logs Dashboard */}
+          {fraudLogs.length > 0 && (
+            <section className="fraud-logs-container" style={{ marginTop: '2rem' }}>
+              <h2 className="fraud-logs-title" style={{ color: 'var(--primary-glow)', borderLeftColor: 'var(--primary-glow)' }}>AI Intervention Logs</h2>
+              <div className="fraud-logs-grid">
+                {fraudLogs.map((log, index) => (
+                  <div key={index} className="log-card" style={{ borderColor: 'rgba(0, 114, 255, 0.2)' }}>
+                    <div className="log-card-header" style={{ background: 'rgba(0, 114, 255, 0.08)', borderBottomColor: 'rgba(0, 114, 255, 0.15)' }}>
+                      <span className="log-timestamp">{log.timestamp}</span>
+                      <span className="log-confidence" style={{ color: 'var(--primary-glow)' }}>{log.confidence}% Intervention Confidence</span>
+                    </div>
+                    <div className="log-card-body">
+                      <div className="log-image-wrapper" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                        {log.base64Image && log.base64Image !== 'mock_base64_frame_data_omitted_for_demo' ? (
+                          <img src={log.base64Image} alt="Captured Screen" className="log-thumbnail" />
+                        ) : (
+                          <div className="log-thumbnail-placeholder">No Image</div>
+                        )}
+                      </div>
+                      <div className="log-details">
+                        <p className="log-reason"><strong>Intervention Reason:</strong> {log.reason}</p>
+                        <p className="log-warning"><strong>Verbal Shield Output:</strong> {log.warning_hi}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </div>
   );
